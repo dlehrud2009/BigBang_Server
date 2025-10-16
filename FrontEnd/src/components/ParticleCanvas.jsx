@@ -40,8 +40,12 @@ export default function ParticleCanvas({ userid, stage, status, startSimulation,
     controls.enablePan = false;
 
     // --- Lights ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
     scene.add(ambientLight);
+    const sunLight = new THREE.PointLight(0xffffff, 2.2, 0, 2);
+    sunLight.position.set(0, 0, 0);
+    sunLight.userData.isStageObject = true;
+    scene.add(sunLight);
 
     let stageObject = null;
     let sun = null;
@@ -142,23 +146,6 @@ export default function ParticleCanvas({ userid, stage, status, startSimulation,
         );
         group.add(stars);
 
-        const core = new THREE.Mesh(
-          new THREE.SphereGeometry(50, 32, 32),
-          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
-        );
-        group.add(core);
-
-        const jetMaterial = new THREE.MeshBasicMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7 });
-        const jetGeometry = new THREE.CylinderGeometry(5, 30, 1000, 32, 1, true);
-
-        const jetUp = new THREE.Mesh(jetGeometry, jetMaterial);
-        jetUp.position.y = 500;
-        group.add(jetUp);
-
-        const jetDown = new THREE.Mesh(jetGeometry, jetMaterial);
-        jetDown.position.y = -500;
-        group.add(jetDown);
-
         group.userData.isStageObject = true;
         stageObject = group;
         scene.add(stageObject);
@@ -192,8 +179,19 @@ export default function ParticleCanvas({ userid, stage, status, startSimulation,
     };
     animate();
 
+    const onResize = () => {
+      const newWidth = mount.clientWidth;
+      const newHeight = mount.clientHeight;
+      camera.aspect = newWidth / newHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newWidth, newHeight);
+      labelRenderer.setSize(newWidth, newHeight);
+    };
+    window.addEventListener("resize", onResize);
+
     return () => {
       cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", onResize);
       renderer.dispose();
       mount.removeChild(renderer.domElement);
       mount.removeChild(labelRenderer.domElement);
@@ -201,7 +199,7 @@ export default function ParticleCanvas({ userid, stage, status, startSimulation,
   }, [stage]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "600px" }}>
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh" }}>
       <div ref={mountRef} style={{ width: "100%", height: "100%" }} />
 
       <div style={{ position: "absolute", top: 10, left: 10, zIndex: 100, display: "flex", gap: "8px" }}>

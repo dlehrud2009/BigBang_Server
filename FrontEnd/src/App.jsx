@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import ParticleCanvas from "./components/ParticleCanvas";
+import UniverseSimulation from "./components/UniverseSimulation";
 
 export default function App() {
   const [userid, setUserId] = useState(null);
@@ -24,8 +25,8 @@ export default function App() {
         socketRef.current = io("http://localhost:4000");
         socketRef.current.emit("join", res.data.userid);
 
-        // 서버 상태 수신
-        socketRef.current.on("updateStage", (data) => {
+        // 서버 상태 수신 (서버는 'stageUpdated'를 emit)
+        socketRef.current.on("stageUpdated", (data) => {
           setStage(data.stage);
           setStatus(data.status);
         });
@@ -62,11 +63,9 @@ export default function App() {
   const changeStage = async (newStage) => {
     if (!userid) return;
 
-    await axios.post(`http://localhost:4000/api/simulation/next/${userid}`, {
-      stage: newStage,
-    });
+    await axios.post("http://localhost:4000/api/simulation/stage", { userid, stage: newStage });
     setStage(newStage);
-    socketRef.current.emit("changeStage", { userid, stage: newStage });
+    // 서버 브로드캐스트는 REST로 처리되므로 별도 소켓 emit 불필요
   };
 
   return (
@@ -80,6 +79,7 @@ export default function App() {
         pauseSimulation={pauseSimulation}
         changeStage={changeStage}
       />
+      {process.env.NODE_ENV !== "production" && <UniverseSimulation />}
     </div>
   );
 }
