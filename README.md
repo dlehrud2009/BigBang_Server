@@ -43,7 +43,8 @@ bigbang/
 │   │   └── utils/          # 유틸리티 함수
 │   │       ├── galaxyUtils.js
 │   │       ├── mathUtils.js
-│   │       └── solarSystem.js
+│   │       ├── solarSystem.js
+│   │       └── educationalBigBang.js
 │   └── build/              # 프로덕션 빌드
 ├── BackEnd/                # Node.js 백엔드
 │   ├── server.js          # 메인 서버 파일
