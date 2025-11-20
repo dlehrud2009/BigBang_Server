@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import ParticleCanvas from "./components/ParticleCanvas";
-import UniverseSimulation from "./components/UniverseSimulation";
 
 export default function App() {
   const [userid, setUserId] = useState(null);
@@ -69,17 +68,13 @@ export default function App() {
   };
 
   return (
-    <div>
-      <h1>BigBang Simulator</h1>
-      <ParticleCanvas
-        userid={userid}
-        stage={stage}
-        status={status}
-        startSimulation={startSimulation}
-        pauseSimulation={pauseSimulation}
-        changeStage={changeStage}
-      />
-      {process.env.NODE_ENV !== "production" && <UniverseSimulation />}
-    </div>
+    <ParticleCanvas
+      userid={userid}
+      stage={stage}
+      status={status}
+      startSimulation={startSimulation}
+      pauseSimulation={pauseSimulation}
+      changeStage={changeStage}
+    />
   );
 }

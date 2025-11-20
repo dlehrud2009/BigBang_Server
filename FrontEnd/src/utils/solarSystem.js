@@ -1,30 +1,111 @@
 // src/utils/solarSystem.js
 import * as THREE from "three";
 
-// ----------------------
-// 스케일 상수
-// ----------------------
-const SCALE_DISTANCE = 12; // 행성 거리 스케일 상향
-const SCALE_SIZE = 16;     // 행성 크기 스케일 상향
-const SUN_SCALE = 22;      // 태양 크기 스케일 상향 (더 크게)
+const SCALE_DISTANCE = 12;
+const SCALE_SIZE = 16;
+const SUN_SCALE = 50;
 
-// ----------------------
-// 태양계 행성 데이터
-// ----------------------
+
 export const solarSystemPlanets = [
-  { name: "Mercury", radius: 60 * SCALE_DISTANCE, size: 3 * SCALE_SIZE, color: 0x888888, speed: 0.02 },
-  { name: "Venus",   radius: 90 * SCALE_DISTANCE, size: 6 * SCALE_SIZE, color: 0xffa500, speed: 0.015 },
-  { name: "Earth",   radius: 120 * SCALE_DISTANCE, size: 8 * SCALE_SIZE, color: 0x00bfff, speed: 0.01 },
-  { name: "Mars",    radius: 150 * SCALE_DISTANCE, size: 5 * SCALE_SIZE, color: 0xff5533, speed: 0.008 },
-  { name: "Jupiter", radius: 190 * SCALE_DISTANCE, size: 12 * SCALE_SIZE, color: 0xc48a3a, speed: 0.005 },
-  { name: "Saturn",  radius: 230 * SCALE_DISTANCE, size: 12 * SCALE_SIZE, color: 0xdec07a, speed: 0.004, ring: true },
-  { name: "Uranus",  radius: 270 * SCALE_DISTANCE, size: 9 * SCALE_SIZE, color: 0x8fd6e8, speed: 0.003 },
-  { name: "Neptune", radius: 310 * SCALE_DISTANCE, size: 9 * SCALE_SIZE, color: 0x3557ff, speed: 0.0025 },
+  { 
+    name: "Mercury", 
+    radius: 60 * SCALE_DISTANCE, 
+    size: 3 * SCALE_SIZE, 
+    color: 0x888888, 
+    speed: 0.02,
+    description: "수성은 태양에 가장 가까운 행성입니다. 매우 빠른 공전 속도와 극단적인 온도 변화가 특징입니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/0/02/Mercury_in_true_color.jpg",
+    temperature: "낮: 430°C / 밤: -180°C",
+    atmosphere: "매우 희박한 대기 (산소, 나트륨)",
+    moons: "위성 없음"
+  },
+  { 
+    name: "Venus", 
+    radius: 90 * SCALE_DISTANCE, 
+    size: 6 * SCALE_SIZE, 
+    color: 0xffa500, 
+    speed: 0.015,
+    description: "금성은 태양계에서 가장 뜨거운 행성입니다. 두꺼운 대기와 강한 온실 효과로 표면 온도가 매우 높습니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e5/Venus-real_color.jpg",
+    temperature: "평균 465°C",
+    atmosphere: "이산화탄소 (96.5%), 질소",
+    moons: "위성 없음"
+  },
+  { 
+    name: "Earth", 
+    radius: 120 * SCALE_DISTANCE, 
+    size: 8 * SCALE_SIZE, 
+    color: 0x00bfff, 
+    speed: 0.01,
+    description: "지구는 우리가 살고 있는 유일한 생명이 존재하는 행성입니다. 액체 물과 적절한 온도가 생명을 가능하게 합니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/6/69/NASA_Blue_Marble_2002.jpg",
+    temperature: "평균 15°C",
+    atmosphere: "질소 (78%), 산소 (21%)",
+    moons: "달 (1개)"
+  },
+  { 
+    name: "Mars", 
+    radius: 150 * SCALE_DISTANCE, 
+    size: 5 * SCALE_SIZE, 
+    color: 0xff5533, 
+    speed: 0.008,
+    description: "화성은 붉은 행성으로 알려져 있습니다. 산화철이 풍부하며 태양계에서 가장 탐사가 많이 이루어진 행성입니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg",
+    temperature: "평균 -65°C",
+    atmosphere: "이산화탄소 (95%), 질소",
+    moons: "포보스, 데이모스 (2개)"
+  },
+  { 
+    name: "Jupiter", 
+    radius: 190 * SCALE_DISTANCE, 
+    size: 12 * SCALE_SIZE, 
+    color: 0xc48a3a, 
+    speed: 0.005,
+    description: "목성은 태양계에서 가장 큰 행성입니다. 주로 가스로 이루어져 있으며 수십 개 이상의 위성을 가지고 있습니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Jupiter.jpg",
+    temperature: "평균 -110°C",
+    atmosphere: "수소 (90%), 헬륨 (10%)",
+    moons: "이오, 유로파, 가니메데, 칼리스토 등 95개+"
+  },
+  { 
+    name: "Saturn", 
+    radius: 230 * SCALE_DISTANCE, 
+    size: 12 * SCALE_SIZE, 
+    color: 0xdec07a, 
+    speed: 0.004, 
+    ring: true,
+    description: "토성은 아름다운 고리로 유명한 행성입니다. 고리는 얼음과 암석으로 이루어진 입자들로 구성되어 있습니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg",
+    temperature: "평균 -140°C",
+    atmosphere: "수소 (96%), 헬륨 (3%)",
+    moons: "타이탄, 레아, 이아페투스 등 146개+"
+  },
+  { 
+    name: "Uranus", 
+    radius: 270 * SCALE_DISTANCE, 
+    size: 9 * SCALE_SIZE, 
+    color: 0x8fd6e8, 
+    speed: 0.003,
+    description: "천왕성은 독특한 청록색을 띠는 행성입니다. 자전축이 90도 가까이 기울어져 있는 매우 특이한 행성입니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3d/Uranus2.jpg",
+    temperature: "평균 -195°C",
+    atmosphere: "수소, 헬륨, 메탄",
+    moons: "타이타니아, 오베론, 움브리엘 등 27개+"
+  },
+  { 
+    name: "Neptune", 
+    radius: 310 * SCALE_DISTANCE, 
+    size: 9 * SCALE_SIZE, 
+    color: 0x3557ff, 
+    speed: 0.0025,
+    description: "해왕성은 태양계 가장자리의 푸른 행성입니다. 태양계에서 가장 먼 행성이며 매우 강한 바람이 있습니다.",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/6/63/Neptune.jpg",
+    temperature: "평균 -200°C",
+    atmosphere: "수소, 헬륨, 메탄",
+    moons: "트리톤, 프로테우스 등 16개+"
+  },
 ];
 
-// ----------------------
-// Canvas 기반 절차적 텍스처 유틸
-// ----------------------
 function createCanvasTexture(width = 1024, height = 512, draw) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -121,9 +202,6 @@ function createRingTexture(inner = 0.6, outer = 1.2) {
   });
 }
 
-// ----------------------
-// 절차적 하이트맵 -> 노멀 근사 생성
-// ----------------------
 function createNormalMapFromHeight(heightTex) {
   const src = heightTex.image;
   const w = src.width, h = src.height;
@@ -139,7 +217,7 @@ function createNormalMapFromHeight(heightTex) {
     x = Math.max(0, Math.min(w - 1, x));
     y = Math.max(0, Math.min(h - 1, y));
     const i = (y * w + x) * 4;
-    return data[i] / 255; // R 채널만 사용
+    return data[i] / 255;
   };
   const strength = 2.0;
   for (let y = 0; y < h; y++) {
@@ -164,9 +242,7 @@ function createNormalMapFromHeight(heightTex) {
 
 function createProceduralPlanetMaps(name, baseHex) {
   const width = 4096, height = 2048; // 고해상도 캔버스
-  // 색상 맵
   const colorTex = createPlanetTexture(name, baseHex);
-  // 하이트맵: 행성 유형별 높이 강조
   const heightTex = createCanvasTexture(width, height, (ctx, w, h) => {
     ctx.fillStyle = 'rgb(127,127,127)';
     ctx.fillRect(0, 0, w, h);
@@ -183,7 +259,6 @@ function createProceduralPlanetMaps(name, baseHex) {
       }
       ctx.globalAlpha = 0.15; noise(ctx, w, h, 0.4); ctx.globalAlpha = 1;
     } else if (name === 'Mars' || name === 'Mercury') {
-      // 크레이터 질감
       ctx.fillStyle = 'rgb(180,180,180)';
       for (let i = 0; i < 3500; i++) {
         const x = Math.random() * w, y = Math.random() * h, r = Math.random() * 4 + 1;
@@ -191,7 +266,6 @@ function createProceduralPlanetMaps(name, baseHex) {
       }
       ctx.globalAlpha = 0.2; noise(ctx, w, h, 0.5); ctx.globalAlpha = 1;
     } else if (name === 'Jupiter' || name === 'Saturn' || name === 'Uranus' || name === 'Neptune') {
-      // 가스 행성: 줄무늬의 높낮이 약간
       for (let y = 0; y < h; y += 6) {
         const gray = 110 + Math.floor(Math.random() * 30);
         ctx.fillStyle = `rgb(${gray},${gray},${gray})`;
@@ -204,15 +278,10 @@ function createProceduralPlanetMaps(name, baseHex) {
   return { colorTex, normalTex };
 }
 
-// ----------------------
-// 태양 생성
-// ----------------------
-export function createSun() {
-  // 그룹으로 구성: 코어 + 코로나 + 플레어
+export function createSun(CSS2DObject) {
   const sunGroup = new THREE.Group();
   sunGroup.userData.isSun = true;
 
-  // 코어 텍스처(절차적) - 화소 노이즈 + 띠그라데이션
   const coreTex = createCanvasTexture(2048, 1024, (ctx, w, h) => {
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, '#fff59e');
@@ -237,7 +306,6 @@ export function createSun() {
   core.scale.set(SUN_SCALE, SUN_SCALE, SUN_SCALE);
   sunGroup.add(core);
 
-  // 코로나(발광 스프라이트)
   const glowTex = createCanvasTexture(1024, 1024, (ctx, w, h) => {
     const cx = w/2, cy = h/2, r = Math.min(cx, cy);
     const g = ctx.createRadialGradient(cx, cy, r*0.1, cx, cy, r);
@@ -249,24 +317,33 @@ export function createSun() {
   });
   const glowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   const glow = new THREE.Sprite(glowMat);
-  const glowScale = 1.9 * SUN_SCALE * 10; // 코어 대비 크게
+  const glowScale = 1.9 * SUN_SCALE * 10;
   glow.scale.set(glowScale, glowScale, 1);
   sunGroup.add(glow);
 
-  // 링처럼 보이는 플레어 제거 (태양은 코어+코로나만 유지)
+  if (CSS2DObject) {
+    const labelDiv = document.createElement('div');
+    labelDiv.textContent = 'Sun';
+    labelDiv.style.color = '#ffffff';
+    labelDiv.style.fontSize = '16px';
+    labelDiv.style.fontWeight = 'bold';
+    labelDiv.style.textShadow = '0 0 10px #ffcc33';
+    labelDiv.style.pointerEvents = 'none';
+    labelDiv.style.userSelect = 'none';
+    
+    const label = new CSS2DObject(labelDiv);
+    label.position.set(0, -SUN_SCALE * 15, 0);
+    sunGroup.add(label);
+  }
 
   return sunGroup;
 }
 
-// ----------------------
-// 행성 생성
-// ----------------------
 export function createPlanets(scene, CSS2DObject) {
   return solarSystemPlanets.map(p => {
     const geo = new THREE.SphereGeometry(p.size, 96, 96);
     let mat;
     const { colorTex, normalTex } = createProceduralPlanetMaps(p.name, p.color);
-    // 야간 발광(지구만 약하게)
     let emissive = undefined, emissiveIntensity = 0.0;
     if (p.name === 'Earth') {
       emissive = new THREE.Color(0x222244);
@@ -283,11 +360,9 @@ export function createPlanets(scene, CSS2DObject) {
     });
     const mesh = new THREE.Mesh(geo, mat);
 
-    // 자전축 기울기
     const tilts = { Mercury: 0.01, Venus: 177 * Math.PI/180, Earth: 23.5 * Math.PI/180, Mars: 25 * Math.PI/180, Jupiter: 3 * Math.PI/180, Saturn: 27 * Math.PI/180, Uranus: 98 * Math.PI/180, Neptune: 28 * Math.PI/180 };
     mesh.rotation.z = tilts[p.name] || 0;
 
-    // 토성 고리
     if (p.ring) {
       const inner = p.size * 1.5;
       const outer = p.size * 2.8;
@@ -302,7 +377,6 @@ export function createPlanets(scene, CSS2DObject) {
       mesh.add(ring);
     }
 
-    // 지구 구름 레이어
     if (p.name === 'Earth') {
       const cloudsGeo = new THREE.SphereGeometry(p.size * 1.02, 96, 96);
       const cloudsTex = createCanvasTexture(1024, 512, (ctx, w, h) => {
@@ -325,7 +399,6 @@ export function createPlanets(scene, CSS2DObject) {
       clouds.userData.isClouds = true;
       mesh.add(clouds);
 
-      // 대기권(프레넬 근사): 카메라 각도에서 가장자리만 더 보이게
       const atmosphereGeo = new THREE.SphereGeometry(p.size * 1.06, 96, 96);
       const atmosphereMat = new THREE.MeshBasicMaterial({ color: 0x66aaff, transparent: true, opacity: 0.06 });
       const atmosphere = new THREE.Mesh(atmosphereGeo, atmosphereMat);
@@ -337,7 +410,6 @@ export function createPlanets(scene, CSS2DObject) {
     mesh.userData.isPlanet = true;
     scene.add(mesh);
 
-    // 행성 라벨
     if (CSS2DObject) {
       const labelDiv = document.createElement("div");
       labelDiv.className = "label";
@@ -351,7 +423,6 @@ export function createPlanets(scene, CSS2DObject) {
       mesh.add(label);
     }
 
-    // 궤도 생성
     const segments = 128;
     const orbitPositions = [];
     for (let i = 0; i <= segments; i++) {
@@ -372,9 +443,6 @@ export function createPlanets(scene, CSS2DObject) {
   });
 }
 
-// ----------------------
-// 행성 위치 업데이트
-// ----------------------
 export function updatePlanetPositions(planets) {
   planets.forEach(p => {
     p.angle += p.speed;
@@ -388,9 +456,6 @@ export function updatePlanetPositions(planets) {
   });
 }
 
-// ----------------------
-// 은하 생성
-// ----------------------
 export function generateGalaxy(numStars = 5000) {
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(numStars * 3);

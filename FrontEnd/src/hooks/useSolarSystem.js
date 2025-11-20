@@ -40,7 +40,7 @@ export function useSolarSystem(scene, camera, active) {
     // ----------------------
     // 태양
     // ----------------------
-    const sun = createSun();
+    const sun = createSun(CSS2DObject);
     sun.scale.set(SUN_SCALE, SUN_SCALE, SUN_SCALE);
     scene.add(sun);
     sunRef.current = sun;
