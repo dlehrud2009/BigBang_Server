@@ -43,7 +43,8 @@ bigbang/
 │   │   └── utils/          # 유틸리티 함수
 │   │       ├── galaxyUtils.js
 │   │       ├── mathUtils.js
-│   │       └── solarSystem.js
+│   │       ├── solarSystem.js
+│   │       └── educationalBigBang.js
 │   └── build/              # 프로덕션 빌드
 ├── BackEnd/                # Node.js 백엔드
 │   ├── server.js          # 메인 서버 파일
@@ -133,10 +134,17 @@ npm start          # 서버 실행
 
 ## API 엔드포인트
 
-- `POST /api/user` - 사용자 생성
-- `POST /api/simulation/start` - 시뮬레이션 시작
-- `POST /api/simulation/pause` - 시뮬레이션 일시정지
-- `POST /api/simulation/stage` - 시뮬레이션 단계 변경
+| 서비스 | API 경로 | HTTP Method | Request | Response | 설명 |
+| --- | --- | --- | --- | --- | --- |
+| 사용자 생성 | `/api/user` | POST | `{ "username": "홍길동" }` | `{ "userid": 1, "username": "홍길동", "stage": "bigbang", "status": "started" }` | 접속 시 새로운 사용자 생성 및 시뮬레이션 자동 시작 |
+| 사용자 목록 조회 | `/api/user` | GET | 없음 | `[{"userid":1, "username":"홍길동"}]` | 서버에 등록된 모든 사용자 목록 조회 |
+| 시뮬레이션 일시정지 | `/api/simulation/pause` | POST | `{ "userid": 1 }` | `{ "userid": 1, "status": "paused", "stage": "bigbang" }` | 해당 사용자의 시뮬레이션 일시정지 |
+| 현재 단계 조회 | `/api/simulation/stage/:userid` | GET | 없음 | `{ "stage": "bigbang" }` | 해당 사용자의 현재 시뮬레이션 단계 확인 |
+| 다음 단계 전환 | `/api/simulation/next/:userid` | POST | 없음 | `{ "stage": "galaxy" }` | 해당 사용자의 시뮬레이션을 다음 단계로 전환 |
+| 이전 단계 되돌리기 | `/api/simulation/prev/:userid` | POST | 없음 | `{ "stage": "bigbang" }` | 해당 사용자의 시뮬레이션을 이전 단계로 되돌리기 |
+
+> 모든 상태는 서버 메모리에 저장되며, 서버 재시작 시 초기화됩니다.
+
 
 ## 브라우저 지원
 
