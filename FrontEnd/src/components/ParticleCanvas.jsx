@@ -312,7 +312,7 @@ export default function ParticleCanvas({ userid, stage, status, startSimulation,
         scene.add(mesh);
         eduBigBangObjects.push(mesh);
 
-        camera.position.set(0, 0, 900);
+        camera.position.set(0, 0, 800);
         controls.target.set(0, 0, 0);
         controls.update();
       }

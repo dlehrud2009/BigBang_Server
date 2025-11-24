@@ -87,29 +87,8 @@ export function updateClassroomBlackboard(canvas, time) {
   ctx.fillText('1-3 min', 680, 800);
   ctx.fillText('380k years', 980, 800);
   
-  // 각 단계별 애니메이션
-  // 이제 3개의 패널을 그립니다: (이미지 2, 3, 4)
-  const stages = [
-    { x: 300, y: 250, duration: 2.5, delay: 0 },   // 2번째 사진: Quark-gluon plasma
-    { x: 700, y: 250, duration: 2.5, delay: 2.5 }, // 3번째 사진: Protons & neutrons emerge
-    { x: 1100, y: 250, duration: 3, delay: 5 },    // 4번째 사진: First light elements forged
-    { x: 700, y: 550, duration: 3, delay: 8 }      // 추가: 원자 패널 (Atoms)
-  ];
-  
-  stages.forEach((stage, idx) => {
-    const elapsed = time - stage.delay;
-    
-    // 단계별 진행도 (0~1)
-    const progress = Math.max(0, Math.min(1, elapsed / stage.duration));
-    
-    if (progress > 0) {
-      // 각 패널은 첨부 이미지(및 원자)를 그립니다.
-      drawPanelForAttachment(ctx, idx, stage.x, stage.y, progress);
-      
-      // 패널 제목 (분필 스타일, Stage라는 단어는 제거)
-      drawPanelTitle(ctx, idx, stage.x, stage.y + 150, progress);
-    }
-  });
+  // 우주 역사 인포그래픽(5번째 이미지)을 참고한 타임라인/깔때기 시각화
+  drawUniverseTimeline(ctx, canvas, time);
   
   // 현재 시간 표시
   ctx.fillStyle = '#00ff00';
@@ -117,6 +96,126 @@ export function updateClassroomBlackboard(canvas, time) {
   ctx.textAlign = 'right';
   ctx.fillText(`t = ${time.toFixed(1)}s (simulation)`, canvas.width - 50, 850);
 }
+ 
+  // 우주 역사 인포그래픽 스타일 타임라인 그리기
+  function drawUniverseTimeline(ctx, canvas, time) {
+    const left = 140;
+    const right = canvas.width - 140;
+    const width = right - left;
+    const centerY = 320;
+    const stages = [
+      { title: 'Big Bang', sub: '13.8 billion years ago', color: '#FFDDAA' },
+      { title: 'Quark-gluon plasma', sub: '1 microsecond', color: '#FF6B6B' },
+      { title: 'Nucleons form', sub: 'few microseconds', color: '#FFB86B' },
+      { title: 'Light elements', sub: '10s–20min', color: '#88DD88' },
+      { title: 'Structure formation', sub: 'Millions years', color: '#88CCFF' },
+      { title: 'Today', sub: '13.8 billion years', color: '#B0A0FF' }
+    ];
+
+    // compute expanding sizes to mimic funnel
+    const minR = 40;
+    const maxR = 220;
+    const n = stages.length;
+
+    // draw soft cone behind (chalky trapezoid)
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.moveTo(left - 20, centerY - minR);
+    ctx.lineTo(left - 20, centerY + minR);
+    ctx.lineTo(right + 20, centerY + maxR);
+    ctx.lineTo(right + 20, centerY - maxR);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // highlight current stage based on time
+    const cycle = 12; // seconds per cycle
+    const p = ((time % cycle) + cycle) % cycle / cycle;
+    const activeIndex = Math.floor(p * n);
+
+    // 전체 설명을 한 번에 그립니다 (단계별 타이핑 대신)
+    drawCombinedDescription(ctx, canvas);
+
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      // x position along timeline
+      const cx = left + t * width;
+      // radius grows with t (expanding universe)
+      const rx = minR + t * (maxR - minR);
+      const ry = rx * 0.6;
+
+        // chalky ellipse
+      const g = ctx.createRadialGradient(cx - rx * 0.2, centerY - ry * 0.2, rx * 0.1, cx, centerY, rx);
+      g.addColorStop(0, hexWithAlpha(stages[i].color, 0.9));
+      g.addColorStop(1, hexWithAlpha('#000000', 0.05));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(cx, centerY, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // dashed outline (chalk)
+      ctx.setLineDash([10, 6]);
+      ctx.strokeStyle = '#FFFF99';
+      ctx.lineWidth = i === activeIndex ? 4 : 2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // stage title
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = i === activeIndex ? 'bold 16px Arial' : '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(stages[i].title, cx, centerY - ry - 12);
+      // sub label
+      ctx.fillStyle = '#FFFF99';
+      ctx.font = '12px Arial';
+      ctx.fillText(stages[i].sub, cx, centerY + ry + 16);
+
+      // pulsing indicator for active stage
+      if (i === activeIndex) {
+        const glow = 1 + Math.sin(time * 3) * 0.08;
+        ctx.beginPath();
+        ctx.fillStyle = hexWithAlpha('#FFFF99', 0.12 * glow);
+        ctx.ellipse(cx, centerY, rx + 12 * glow, ry + 8 * glow, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // draw detailed slice contents (high-quality visuals)
+      drawSliceDetails(ctx, i, cx, centerY, rx, ry, time);
+
+      ctx.restore();
+    }
+
+    // draw connecting timeline arrow
+    ctx.save();
+    ctx.strokeStyle = '#FFFF99';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(left, centerY + minR + 30);
+    ctx.lineTo(right + 30, centerY + maxR + 60);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // arrow head
+    ctx.beginPath();
+    ctx.moveTo(right + 30, centerY + maxR + 60);
+    ctx.lineTo(right + 18, centerY + maxR + 46);
+    ctx.lineTo(right + 18, centerY + maxR + 74);
+    ctx.closePath();
+    ctx.fillStyle = '#FFFF99';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function hexWithAlpha(hex, alpha) {
+    // hex like #RRGGBB
+    const c = hex.replace('#','');
+    const r = parseInt(c.substring(0,2),16);
+    const g = parseInt(c.substring(2,4),16);
+    const b = parseInt(c.substring(4,6),16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
 // 각 첨부 이미지(2,3,4)에 해당하는 패널을 그립니다.
 function drawPanelForAttachment(ctx, idx, x, y, progress) {
   ctx.save();
@@ -138,6 +237,210 @@ function drawPanelForAttachment(ctx, idx, x, y, progress) {
       break;
   }
 
+  ctx.restore();
+}
+
+// ---------- 상세 슬라이스 콘텐츠 (고퀄) ----------
+function drawSliceDetails(ctx, idx, cx, cy, rx, ry, time) {
+  // idx: 0..n-1
+  // use offscreen canvas for complex patterns when needed
+  switch (idx) {
+    case 0: // Big Bang - bright flash + expanding particles
+      drawBigBangFlash(ctx, cx, cy, rx, ry, time);
+      break;
+    case 1: // Quark-gluon plasma - dense colored particles
+      drawQGPDetail(ctx, cx, cy, rx, ry, time);
+      break;
+    case 2: // Nucleons form - clusters of protons/neutrons
+      drawNucleonClusters(ctx, cx, cy, rx, ry, time);
+      break;
+    case 3: // Light elements - fusion sparks and small nuclei
+      drawLightElementFormation(ctx, cx, cy, rx, ry, time);
+      break;
+    case 4: // Structure formation / CMB-like texture
+      drawCMBAndProtoStructures(ctx, cx, cy, rx, ry, time);
+      break;
+    case 5: // Today - galaxies, stars, life icon
+      drawTodayScene(ctx, cx, cy, rx, ry, time);
+      break;
+  }
+}
+
+function drawBigBangFlash(ctx, cx, cy, rx, ry, time) {
+  // intense central flash with expanding particles
+  const t = (Math.sin(time * 2) + 1) * 0.5;
+  // core glow
+  const coreR = Math.max(6, rx * 0.12 + t * 30);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 3);
+  g.addColorStop(0, 'rgba(255,255,220,0.95)');
+  g.addColorStop(0.3, 'rgba(255,200,120,0.6)');
+  g.addColorStop(1, 'rgba(40,20,10,0.03)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, coreR * 3, coreR * 2.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // many fast radial particles
+  const count = 80;
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + (time * 1.5 % (Math.PI * 2));
+    const r = coreR + (Math.random() * rx * 0.9 + (time % 1) * rx * 0.4);
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r * 0.7;
+    const size = 1 + Math.random() * 2;
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(255,${80 + Math.floor(Math.random()*160)},${40 + Math.floor(Math.random()*120)},${0.7*Math.random()})`;
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawQGPDetail(ctx, cx, cy, rx, ry, time) {
+  // dense colorful points (quarks + gluons), animated jitter
+  const num = 220; // many small particles
+  for (let i = 0; i < num; i++) {
+    const ang = (i / num) * Math.PI * 2 + (i % 7) * 0.13 + time * 2.0 * ((i%3)-1);
+    const r = (Math.random() * 0.9 + 0.1) * rx * 0.6;
+    const x = cx + Math.cos(ang) * r;
+    const y = cy + Math.sin(ang) * (r * 0.6);
+    const palette = ['#FF6B6B','#FFD166','#4ECDC4','#FFD6C2','#FF8C69'];
+    ctx.beginPath();
+    ctx.fillStyle = palette[i % palette.length];
+    ctx.globalAlpha = 0.85 * (0.4 + Math.random() * 0.6);
+    ctx.arc(x, y, 1.8 + (i % 4) * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1.0;
+}
+
+function drawNucleonClusters(ctx, cx, cy, rx, ry, time) {
+  // draw clusters of red/blue spheres with soft shading
+  const clusters = 6;
+  for (let c = 0; c < clusters; c++) {
+    const ang = (c / clusters) * Math.PI * 2 + time * 0.3 * (1 + c*0.1);
+    const rDist = rx * 0.45 * (0.4 + (c % 3) * 0.2);
+    const cxp = cx + Math.cos(ang) * rDist;
+    const cyp = cy + Math.sin(ang) * (rDist * 0.6);
+    // draw cluster of 3-7 spheres
+    const pcs = 4 + (c % 4);
+    for (let i = 0; i < pcs; i++) {
+      const a = (i / pcs) * Math.PI * 2 + (c * 0.5);
+      const rr = 10 + (i % 3) * 3;
+      const px = cxp + Math.cos(a) * (rr * 1.8);
+      const py = cyp + Math.sin(a) * (rr * 1.2);
+      drawShadedSphere(ctx, px, py, rr, i % 2 === 0 ? '#FF6B6B' : '#4E8CFF');
+    }
+  }
+}
+
+function drawLightElementFormation(ctx, cx, cy, rx, ry, time) {
+  // show two protons approaching and fusing with sparks
+  const baseR = rx * 0.25;
+  const offset = Math.sin(time * 2) * 12;
+  drawShadedSphere(ctx, cx - baseR - offset, cy, 18, '#FF6B6B');
+  drawShadedSphere(ctx, cx + baseR + offset, cy, 18, '#FF6B6B');
+
+  // fusion spark
+  if (Math.floor(time) % 2 === 0) {
+    const sparkCount = 18;
+    for (let i = 0; i < sparkCount; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 6 + Math.random() * 20;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,${180+Math.floor(Math.random()*75)},0,${0.6*Math.random()})`;
+      ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.6, 1 + Math.random()*2, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawCMBAndProtoStructures(ctx, cx, cy, rx, ry, time) {
+  // textured speckle background (CMB-like)
+  const density = 600;
+  for (let i = 0; i < density; i++) {
+    const x = cx - rx + Math.random() * rx * 2;
+    const y = cy - ry + Math.random() * ry * 2;
+    const v = Math.random();
+    ctx.fillStyle = `rgba(${180+Math.floor(v*60)},${180+Math.floor(v*30)},${200+Math.floor(v*20)},${0.06+v*0.06})`;
+    ctx.fillRect(x, y, 1, 1);
+  }
+
+  // a few proto-galaxies (small spirals)
+  const proto = 6;
+  for (let i = 0; i < proto; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.random() * rx * 0.7;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r * 0.6;
+    drawSpiralGalaxy(ctx, x, y, 0.6 + Math.random()*1.6, time * 0.2 + i);
+  }
+}
+
+function drawTodayScene(ctx, cx, cy, rx, ry, time) {
+  // draw several full galaxies and stars
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + time * 0.05 * (i%3);
+    const r = 20 + i * (rx / 12);
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r * 0.6;
+    drawSpiralGalaxy(ctx, x, y, 1 + (i%3)*0.6, time * 0.3 + i);
+  }
+  // small star field
+  for (let s = 0; s < 120; s++) {
+    const x = cx - rx + Math.random() * rx * 2;
+    const y = cy - ry + Math.random() * ry * 2;
+    const sz = Math.random() * 1.5;
+    ctx.fillStyle = `rgba(255,255,${200+Math.floor(Math.random()*55)},${0.8*Math.random()})`;
+    ctx.fillRect(x, y, sz, sz);
+  }
+  // life icon (simple human silhouettes)
+  drawHumanIcon(ctx, cx + rx*0.45, cy - ry*0.2);
+}
+
+// helper: shaded sphere (simple light from top-left)
+function drawShadedSphere(ctx, x, y, r, color) {
+  const grad = ctx.createRadialGradient(x - r*0.3, y - r*0.4, r*0.1, x, y, r);
+  grad.addColorStop(0, '#FFFFFF');
+  grad.addColorStop(0.12, color);
+  grad.addColorStop(1, '#000000');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawSpiralGalaxy(ctx, x, y, scale, phase) {
+  // simple multi-armed spiral using strokes
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(phase * 0.4);
+  const arms = 3;
+  for (let a = 0; a < arms; a++) {
+    ctx.beginPath();
+    for (let t = 0; t < 1.8; t += 0.02) {
+      const ang = t * Math.PI * 2 + (a * (Math.PI*2/arms));
+      const rad = t * 20 * scale * (1 + 0.2*Math.sin(t*20+phase));
+      const px = Math.cos(ang) * rad;
+      const py = Math.sin(ang) * rad * 0.6;
+      if (t === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = `rgba(255, ${200 - a*30}, ${180 - a*20}, 0.9)`;
+    ctx.lineWidth = 1.2 * scale;
+    ctx.stroke();
+  }
+  // core
+  ctx.beginPath(); ctx.fillStyle = '#FFF2CC'; ctx.arc(0,0,4*scale,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawHumanIcon(ctx, x, y) {
+  ctx.save();
+  ctx.fillStyle = '#FFFF99';
+  // two simple silhouettes
+  ctx.beginPath(); ctx.arc(x-6, y-6, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(x-10, y-0, 8, 14);
+  ctx.beginPath(); ctx.arc(x+12, y-6, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(x+8, y-0, 8, 14);
   ctx.restore();
 }
 
@@ -419,6 +722,75 @@ function drawStageLabel(ctx, stageIdx, x, y, progress) {
     }
     ctx.fillText(displayText, x, y + 150 + lineIdx * 18);
   });
+}
+
+// 한 번에 전체 단계 설명을 그리는 함수
+// 한 번에 전체 단계 설명을 그리는 함수
+function drawCombinedDescription(ctx, canvas) {
+  const left = 80;
+  const top = 120;
+  const width = 420;
+  const padding = 12;
+
+  // 배경 박스 (분필 느낌)
+  ctx.save();
+  ctx.globalAlpha = 0.14;
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, left, top, width, 260, 10, true, false);
+  ctx.restore();
+
+  // 제목
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 18px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('우주 진화 요약', left + padding, top + 28);
+
+  // 한 문단으로 합친 한국어 설명 생성
+  const parts = educationalBigBangStages.map(s => `${s.name}(${s.timeRange}): ${s.description}`);
+  const paragraph = `요약 — ${parts.join(' → ')}.`;
+
+  // 본문 텍스트 그리기 (자동 줄바꿈)
+  ctx.fillStyle = '#FFFF99';
+  ctx.font = '13px Arial';
+  const textX = left + padding;
+  const textY = top + 54;
+  const maxWidth = width - padding * 2;
+  const lineHeight = 18;
+  wrapText(ctx, paragraph, textX, textY, maxWidth, lineHeight);
+}
+
+// helper: 긴 문장 자동 줄바꿈 및 렌더
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  let curY = y;
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + (line ? ' ' : '') + words[n];
+    const metrics = ctx.measureText(testLine);
+    const testWidth = metrics.width;
+    if (testWidth > maxWidth && line) {
+      ctx.fillText(line, x, curY);
+      line = words[n];
+      curY += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  if (line) ctx.fillText(line, x, curY);
+}
+
+// helper: rounded rectangle
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  if (typeof r === 'undefined') r = 5;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
 }
 
 // 단계 정보
