@@ -839,7 +839,7 @@ export default function UniverseClicker({ userid }) {
             <div>클릭당: {formatNumber(energyPerClick * calculateMultiplier())}</div>
             <div>초당: {formatNumber(calculatePerSecond())}</div>
             <div>크리티컬: {(criticalChance * 100).toFixed(0)}% (크리티컬 피해 {(criticalDamage * 100).toFixed(0)}%)</div>
-            <div>환생 배율: x{prestigeMultiplier.toFixed(2)} (평행우주 {parallelUniverses}개)</div>
+            <div>평행 우주: x{prestigeMultiplier.toFixed(2)} (환생 {parallelUniverses}개)</div>
             
           </div>
           <div className="bulk-upgrade-bar">
