@@ -322,4 +322,24 @@ module.exports = {
   getBlackHoleRankings,
   getUserRank,
   closeDatabase,
+  resetDatabase: function(callback) {
+    if (!sqlite3) {
+      global.__MEM_DB__ = { users: [], scores: [] };
+      return callback && callback(null, true);
+    }
+    ensureInitialized(() => {
+      db.serialize(() => {
+        db.run(`DELETE FROM users`, (err1) => {
+          if (err1) return callback && callback(err1, null);
+          db.run(`DELETE FROM blackhole_scores`, (err2) => {
+            if (err2) return callback && callback(err2, null);
+            db.run(`DELETE FROM sqlite_sequence WHERE name IN ('users','blackhole_scores')`, (err3) => {
+              if (err3) console.warn("sqlite_sequence 초기화 경고:", err3.message);
+              callback && callback(null, true);
+            });
+          });
+        });
+      });
+    });
+  },
 };

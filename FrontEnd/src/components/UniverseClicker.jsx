@@ -38,7 +38,7 @@ const PLANETS = [
     name: "화성",
     description: "치명타 확률 증가",
     baseCost: 6000,
-    effect: "critical", // 치명타 확률
+    effect: "criticalChance",
     multiplier: 2.0,
     emoji: "♂️",
     color: "#CD5C5C",
@@ -384,14 +384,14 @@ const GLOBAL_UPGRADES = [
 ];
 
 const SAVE_KEY = "universe_clicker_save_v1";
-const PRESTIGE_BASE = 1e9;
+const PRESTIGE_BASE = 1e120;
 const PRESTIGE_INCREMENT = 0.5;
 
 export default function UniverseClicker() {
   const [energy, setEnergy] = useState(0);
   const [energyPerClick, setEnergyPerClick] = useState(1);
   const [autoClickRate, setAutoClickRate] = useState(0);
-  const [criticalChance] = useState(0.25);
+  const [criticalChance, setCriticalChance] = useState(0.05);
   const [criticalDamage, setCriticalDamage] = useState(2.0);
   const [totalClicks, setTotalClicks] = useState(0);
   const [totalEnergyGenerated, setTotalEnergyGenerated] = useState(0);
@@ -409,6 +409,8 @@ export default function UniverseClicker() {
   const [clickAnimation, setClickAnimation] = useState(null);
   const animationRef = useRef(null);
   const lastAutoClickRef = useRef(Date.now());
+  const energyRef = useRef(0);
+  useEffect(() => { energyRef.current = energy; }, [energy]);
 
   // 저장 불러오기
   useEffect(() => {
@@ -614,8 +616,11 @@ export default function UniverseClicker() {
         case "autoClick":
           setAutoClickRate((prev) => prev + 1);
           break;
-        case "critical":
+        case "criticalDamage":
           setCriticalDamage((prev) => Math.min(prev + 0.5, 10));
+          break;
+        case "criticalChance":
+          setCriticalChance((prev) => Math.min(prev + 0.01, 0.5));
           break;
         case "generationSpeed":
           // 자동 생성 속도는 이미 계산됨
@@ -772,27 +777,35 @@ export default function UniverseClicker() {
   };
 
   const bulkUpgrade = () => {
-    let progressed = true;
-    while (progressed) {
-      progressed = false;
-      const planetCosts = PLANETS.map(p => ({ p, level: planetLevels[p.id] || 0, allowedMax: p.effect === "increasePlanetMax" ? (p.maxLevel ?? Infinity) : calculatePlanetMax(), cost: getPlanetCost(p.id) }))
-        .filter(x => x.level < x.allowedMax)
-        .sort((a,b) => a.cost - b.cost);
-      for (const x of planetCosts) {
-        if (energy >= x.cost) { buyPlanet(x.p.id); progressed = true; }
-      }
-      const nebulaList = [...NEBULAE, ...COSMOS];
-      const nebulaCosts = nebulaList.map(n => ({ n, level: nebulaLevels[n.id] || 0, allowedMax: n.effect === "increaseNebulaMax" ? (n.maxLevel ?? Infinity) : (n.maxLevel ?? calculateNebulaMax()), cost: getNebulaCost(n.id) }))
-        .filter(x => x.level < x.allowedMax)
-        .sort((a,b) => a.cost - b.cost);
-      for (const x of nebulaCosts) {
-        if (energy >= x.cost) { buyNebula(x.n.id); progressed = true; }
-      }
-      const globals = GLOBAL_UPGRADES.map(g => ({ g, level: globalLevels[g.id] || 0 })).sort((a,b) => (a.g.baseCost * Math.pow(2,a.level)) - (b.g.baseCost * Math.pow(2,b.level)));
-      for (const x of globals) {
-        if (buyGlobalUpgrade(x.g.id)) progressed = true;
-      }
-    }
+    const attemptOnce = () => {
+      const candidates = [];
+      PLANETS.forEach(p => {
+        const level = planetLevels[p.id] || 0;
+        const allowedMax = p.effect === "increasePlanetMax" ? (p.maxLevel ?? Infinity) : calculatePlanetMax();
+        if (level < allowedMax) candidates.push({ type: "planet", id: p.id, cost: getPlanetCost(p.id) });
+      });
+      [...NEBULAE, ...COSMOS].forEach(n => {
+        const level = nebulaLevels[n.id] || 0;
+        const allowedMax = n.effect === "increaseNebulaMax" ? (n.maxLevel ?? Infinity) : (n.maxLevel ?? calculateNebulaMax());
+        if (level < allowedMax) candidates.push({ type: "nebula", id: n.id, cost: getNebulaCost(n.id) });
+      });
+      GLOBAL_UPGRADES.forEach(g => {
+        const level = globalLevels[g.id] || 0;
+        const base = Math.floor(g.baseCost * Math.pow(2, level));
+        const reducers = [...NEBULAE, ...COSMOS].filter(n => n.effect === "costReduction");
+        let finalCost = base;
+        reducers.forEach(r => { const lvl = nebulaLevels[r.id] || 0; if (lvl > 0) finalCost *= Math.pow(r.multiplier, lvl); });
+        candidates.push({ type: "global", id: g.id, cost: Math.floor(finalCost) });
+      });
+      candidates.sort((a,b) => a.cost - b.cost);
+      const affordable = candidates.find(c => energyRef.current >= c.cost);
+      if (!affordable) return;
+      if (affordable.type === "planet") buyPlanet(affordable.id);
+      else if (affordable.type === "nebula") buyNebula(affordable.id);
+      else buyGlobalUpgrade(affordable.id);
+      setTimeout(attemptOnce, 0);
+    };
+    attemptOnce();
   };
 
   return (
@@ -802,14 +815,14 @@ export default function UniverseClicker() {
         <div className="energy-display">
           <div className="energy-main">
             <span className="energy-label">에너지:</span>
-            <span className="energy-value">{formatMoney(energy)}</span>
+            <span className="energy-value">{formatNumber(energy)}</span>
           </div>
           <div className="energy-stats">
-            <div>클릭당: {formatMoney(energyPerClick * calculateMultiplier())}</div>
-            <div>초당: {formatMoney(calculatePerSecond())}</div>
-            <div>크리티컬: {(0.25 * 100).toFixed(0)}% (크리티컬 피해 {(criticalDamage * 100).toFixed(0)}%)</div>
+            <div>클릭당: {formatNumber(energyPerClick * calculateMultiplier())}</div>
+            <div>초당: {formatNumber(calculatePerSecond())}</div>
+            <div>크리티컬: {(criticalChance * 100).toFixed(0)}% (크리티컬 피해 {(criticalDamage * 100).toFixed(0)}%)</div>
             <div>환생 배율: x{prestigeMultiplier.toFixed(2)} (평행우주 {parallelUniverses}개)</div>
-            <div>현재 단위: Notg × 2^{parallelUniverses}</div>
+            
           </div>
           <div className="bulk-upgrade-bar">
             <button className="bulk-upgrade-button" onClick={bulkUpgrade}>전체 강화</button>
@@ -837,7 +850,7 @@ export default function UniverseClicker() {
                   top: `${clickAnimation.y}%`,
                 }}
               >
-                +{formatMoney(energyPerClick * calculateMultiplier() * (clickAnimation.type === "critical" ? criticalDamage : 1))}
+                +{formatNumber(energyPerClick * calculateMultiplier() * (clickAnimation.type === "critical" ? criticalDamage : 1))}
               </div>
             )}
           </div>
@@ -867,7 +880,7 @@ export default function UniverseClicker() {
                       <h3>{planet.name}</h3>
                       <p>{planet.description}</p>
                       <div className="upgrade-level">레벨: {level}</div>
-                      <div className="upgrade-cost">비용: {formatMoney(cost)}</div>
+                      <div className="upgrade-cost">비용: {formatNumber(cost)}</div>
                     </div>
                   </div>
                 );
@@ -886,13 +899,13 @@ export default function UniverseClicker() {
                 reducers.forEach(r => { const lvl = nebulaLevels[r.id] || 0; if (lvl > 0) finalCost *= Math.pow(r.multiplier, lvl); });
                 const canBuy = energy >= finalCost;
                 return (
-                  <div key={g.id} className={`upgrade-card nebula-card ${canBuy ? "" : "disabled"}`} onClick={() => canBuy && setGlobalLevels(prev => ({ ...prev, [g.id]: level + 1 })) && setEnergy(prev => prev - Math.floor(finalCost))}>
+                  <div key={g.id} className={`upgrade-card nebula-card ${canBuy ? "" : "disabled"}`} onClick={() => { if (canBuy) buyGlobalUpgrade(g.id); }}>
                     <div className="upgrade-emoji" style={{ color: g.color }}>{g.emoji}</div>
                     <div className="upgrade-info">
                       <h3>{g.name}</h3>
                       <p>{g.description}</p>
                       <div className="upgrade-level">레벨: {level}</div>
-                      <div className="upgrade-cost">비용: {formatMoney(Math.floor(finalCost))}</div>
+                      <div className="upgrade-cost">비용: {formatNumber(Math.floor(finalCost))}</div>
                     </div>
                   </div>
                 );
@@ -922,7 +935,7 @@ export default function UniverseClicker() {
                       <h3>{nebula.name}</h3>
                       <p>{nebula.description}</p>
                       <div className="upgrade-level">레벨: {level}</div>
-                      <div className="upgrade-cost">비용: {formatMoney(cost)}</div>
+                      <div className="upgrade-cost">비용: {formatNumber(cost)}</div>
                     </div>
                   </div>
                 );
@@ -951,7 +964,7 @@ export default function UniverseClicker() {
                     <h3>{item.name}</h3>
                     <p>{item.description}</p>
                     <div className="upgrade-level">레벨: {level}</div>
-                    <div className="upgrade-cost">비용: {formatMoney(cost)}</div>
+                    <div className="upgrade-cost">비용: {formatNumber(cost)}</div>
                   </div>
                 </div>
               );
@@ -968,16 +981,16 @@ export default function UniverseClicker() {
             </div>
             <div className="stat-item">
               <span className="stat-label">생성된 에너지:</span>
-              <span className="stat-value">{formatMoney(totalEnergyGenerated)}</span>
+              <span className="stat-value">{formatNumber(totalEnergyGenerated)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">보유 에너지:</span>
-              <span className="stat-value">{formatMoney(energy)}</span>
+              <span className="stat-value">{formatNumber(energy)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">초당 생성량:</span>
               <span className="stat-value">
-                {formatMoney(calculatePerSecond())}
+                {formatNumber(calculatePerSecond())}
               </span>
             </div>
           </div>

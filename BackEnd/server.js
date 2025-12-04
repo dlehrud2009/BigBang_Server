@@ -12,6 +12,7 @@ const {
   saveBlackHoleScore,
   getBlackHoleRankings,
   getUserRank,
+  resetDatabase,
 } = require("./database");
 
 const app = express();
@@ -244,6 +245,25 @@ app.get("/api/blackhole/ranking", (req, res) => {
 // 헬스 체크 엔드포인트
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" });
+});
+
+// 관리자: 데이터베이스 초기화
+app.post("/api/admin/reset", (req, res) => {
+  try {
+    resetDatabase((err) => {
+      if (err) {
+        console.error("데이터베이스 초기화 오류:", err);
+        return res.status(500).json({ success: false, message: "DB 초기화 실패" });
+      }
+      users = {};
+      simulationStates = {};
+      userIdCounter = 1;
+      res.json({ success: true });
+    });
+  } catch (e) {
+    console.error("DB 초기화 예외:", e);
+    res.status(500).json({ success: false });
+  }
 });
 
 // 루트 라우트
