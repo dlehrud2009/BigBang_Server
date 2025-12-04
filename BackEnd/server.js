@@ -19,6 +19,7 @@ const {
   getClickerState,
   saveClickerRanking,
   getClickerRankings,
+  getClickerUserRank,
 } = require("./database");
 
 const app = express();
@@ -315,6 +316,15 @@ app.get("/api/clicker/ranking", (req, res) => {
   getClickerRankings(limit, (err, rankings) => {
     if (err) return res.status(500).json({ success: false, message: "조회 오류" });
     res.json({ success: true, rankings: rankings || [] });
+  });
+});
+
+app.get("/api/clicker/rank", (req, res) => {
+  const userid = parseInt(req.query.userid);
+  if (!userid) return res.status(400).json({ success: false, message: "userid 필요" });
+  getClickerUserRank(userid, (err, userRank) => {
+    if (err) return res.status(500).json({ success: false, message: "조회 오류" });
+    res.json({ success: true, user: userRank || null });
   });
 });
 

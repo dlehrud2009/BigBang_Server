@@ -427,6 +427,64 @@ function getClickerRankings(limit = 10, callback) {
   });
 }
 
+function getClickerUserRank(userid, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker_rank: [], clicker: [] };
+    const userRow = global.__MEM_DB__.clicker_rank.find(s => s.userid === userid) || (() => {
+      const energyRow = global.__MEM_DB__.clicker.find(s => s.userid === userid);
+      const user = (global.__MEM_DB__.users || []).find(u => u.id === userid);
+      return {
+        userid,
+        username: user ? user.username : "Unknown",
+        parallel_universes: 0,
+        energy: energyRow ? energyRow.energy : 0,
+        updated_at: energyRow ? energyRow.updated_at : 0,
+      };
+    })();
+    const arr = [...global.__MEM_DB__.clicker_rank].sort((a, b) => (b.energy - a.energy) || (b.updated_at - a.updated_at));
+    let higher = 0;
+    for (const r of arr) {
+      if (r.energy > userRow.energy || (r.energy === userRow.energy && r.updated_at > userRow.updated_at)) higher++;
+    }
+    const rank = higher + 1;
+    return callback && callback(null, { rank, ...userRow });
+  }
+  ensureInitialized(() => {
+    const selectSql = `SELECT userid, username, parallel_universes, energy, updated_at FROM clicker_rankings WHERE userid = ? LIMIT 1`;
+    db.get(selectSql, [userid], (selErr, row) => {
+      if (selErr) return callback && callback(selErr, null);
+      const handleRow = (userRow) => {
+        const rankSql = `SELECT COUNT(*) + 1 AS rank FROM clicker_rankings WHERE energy > ? OR (energy = ? AND updated_at > ?)`;
+        db.get(rankSql, [userRow.energy || 0, userRow.energy || 0, userRow.updated_at || 0], (rankErr, rrow) => {
+          if (rankErr) return callback && callback(rankErr, null);
+          const rank = rrow ? rrow.rank : 1;
+          callback && callback(null, { rank, ...userRow });
+        });
+      };
+      if (row) {
+        handleRow(row);
+      } else {
+        const energySql = `SELECT energy, updated_at FROM clicker_state WHERE userid = ? LIMIT 1`;
+        db.get(energySql, [userid], (eErr, erow) => {
+          if (eErr) return callback && callback(eErr, null);
+          const userSql = `SELECT username FROM users WHERE id = ? LIMIT 1`;
+          db.get(userSql, [userid], (uErr, urow) => {
+            if (uErr) return callback && callback(uErr, null);
+            const userRow = {
+              userid,
+              username: urow ? urow.username : "Unknown",
+              parallel_universes: 0,
+              energy: erow ? erow.energy : 0,
+              updated_at: erow ? erow.updated_at : 0,
+            };
+            handleRow(userRow);
+          });
+        });
+      }
+    });
+  });
+}
+
 // 블랙홀 랭킹 조회
 function getBlackHoleRankings(limit = 10, difficulty = null, callback) {
   if (!sqlite3) {
@@ -539,4 +597,5 @@ module.exports = {
   getClickerState,
   saveClickerRanking,
   getClickerRankings,
+  getClickerUserRank,
 };
