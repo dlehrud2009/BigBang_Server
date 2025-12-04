@@ -637,7 +637,7 @@ export default function BlackHoleEscape({ userid, username }) {
         difficulty,
       });
       setScoreSubmitted(true);
-      if (res.data && typeof res.data.bestScore === "number") {
+      if (res.data && typeof res.data.bestScore === "number" && res.data.bestScore === finalScore) {
         setScore(res.data.bestScore);
       }
       if (res.data.rank) {
