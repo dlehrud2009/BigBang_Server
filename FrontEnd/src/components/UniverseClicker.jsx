@@ -739,6 +739,27 @@ export default function UniverseClicker({ userid }) {
     }
   };
 
+  const ClickerRanking = () => {
+    const [list, setList] = useState([]);
+    useEffect(() => {
+      axios.get(`${API_BASE}/api/clicker/ranking`, { params: { limit: 10 } })
+        .then(res => { if (res.data && res.data.rankings) setList(res.data.rankings); })
+        .catch(() => {});
+    }, []);
+    return (
+      <div className="ranking-grid">
+        {list.map(item => (
+          <div key={item.userid} className="ranking-item">
+            <span className="rank">#{item.rank}</span>
+            <span className="name">{item.username}</span>
+            <span className="pu">환생 {item.parallel_universes}</span>
+            <span className="money">돈 {formatNumber(item.energy)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="universe-clicker">
       <div className="floating-money-bar">
@@ -929,27 +950,6 @@ export default function UniverseClicker({ userid }) {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ClickerRanking() {
-  const [list, setList] = useState([]);
-  useEffect(() => {
-    axios.get(`${API_BASE}/api/clicker/ranking`, { params: { limit: 10 } })
-      .then(res => { if (res.data && res.data.rankings) setList(res.data.rankings); })
-      .catch(() => {});
-  }, []);
-  return (
-    <div className="ranking-grid">
-      {list.map(item => (
-        <div key={item.userid} className="ranking-item">
-          <span className="rank">#{item.rank}</span>
-          <span className="name">{item.username}</span>
-          <span className="pu">환생 {item.parallel_universes}</span>
-          <span className="money">돈 {formatNumber(item.energy)}</span>
-        </div>
-      ))}
     </div>
   );
 }
