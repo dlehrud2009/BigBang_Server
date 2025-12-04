@@ -143,7 +143,7 @@ export default function Login({ onLogin, onGuestContinue }) {
             <label htmlFor="password">비밀번호</label>
             <input
               id="password"
-              type={isSignUp ? "text" : "password"}
+              type={isSignUp ? "password" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

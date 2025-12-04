@@ -413,12 +413,12 @@ function saveClickerRanking(userid, username, parallelUniverses, energy, callbac
 function getClickerRankings(limit = 10, callback) {
   if (!sqlite3) {
     global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker_rank: [] };
-    const arr = [...global.__MEM_DB__.clicker_rank].sort((a, b) => (b.parallel_universes - a.parallel_universes) || (b.energy - a.energy) || (b.updated_at - a.updated_at));
+    const arr = [...global.__MEM_DB__.clicker_rank].sort((a, b) => (b.energy - a.energy) || (b.updated_at - a.updated_at));
     const rows = arr.slice(0, limit).map((row, idx) => ({ rank: idx + 1, ...row }));
     return callback && callback(null, rows);
   }
   ensureInitialized(() => {
-    const sql = `SELECT userid, username, parallel_universes, energy, updated_at FROM clicker_rankings ORDER BY parallel_universes DESC, energy DESC, updated_at DESC LIMIT ?`;
+    const sql = `SELECT userid, username, parallel_universes, energy, updated_at FROM clicker_rankings ORDER BY energy DESC, updated_at DESC LIMIT ?`;
     db.all(sql, [limit], (err, rows) => {
       if (err) return callback && callback(err, null);
       const rankings = rows.map((row, idx) => ({ rank: idx + 1, ...row }));

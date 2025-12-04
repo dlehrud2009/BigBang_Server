@@ -304,50 +304,6 @@ const NEBULAE = [
     maxLevel: 5,
   },
 ];
-const NUMBER_SUFFIXES = [
-  { exp: 3, label: "K" },
-  { exp: 6, label: "M" },
-  { exp: 9, label: "B" },
-  { exp: 12, label: "T" },
-  { exp: 15, label: "Qa" },
-  { exp: 18, label: "Qi" },
-  { exp: 21, label: "Sx" },
-  { exp: 24, label: "Sp" },
-  { exp: 27, label: "Oc" },
-  { exp: 30, label: "No" },
-  { exp: 33, label: "Dc" },
-  { exp: 36, label: "Udc" },
-  { exp: 39, label: "Ddc" },
-  { exp: 42, label: "Tdc" },
-  { exp: 45, label: "Qadc" },
-  { exp: 48, label: "Qidc" },
-  { exp: 51, label: "Sxdc" },
-  { exp: 54, label: "Spdc" },
-  { exp: 57, label: "Ocdc" },
-  { exp: 60, label: "Nodc" },
-  { exp: 63, label: "Vg" },
-  { exp: 66, label: "Uvg" },
-  { exp: 69, label: "Dvg" },
-  { exp: 72, label: "Tvg" },
-  { exp: 75, label: "Qavg" },
-  { exp: 78, label: "Qivg" },
-  { exp: 81, label: "Sxvg" },
-  { exp: 84, label: "Spvg" },
-  { exp: 87, label: "Ocvg" },
-  { exp: 90, label: "Novg" },
-  { exp: 93, label: "Tg" },
-  { exp: 96, label: "Utg" },
-  { exp: 99, label: "Dtg" },
-  { exp: 100, label: "G" },
-  { exp: 102, label: "Ttg" },
-  { exp: 105, label: "Qatg" },
-  { exp: 108, label: "Qitg" },
-  { exp: 111, label: "Sxtg" },
-  { exp: 114, label: "Sptg" },
-  { exp: 117, label: "Octg" },
-  { exp: 120, label: "Notg" },
-  { exp: 123, label: "Qd" },
-];
 const COSMOS = [
   { id: "milkyway", name: "은하수", description: "전체 배수 증가", baseCost: 1e93, effect: "multiplier", multiplier: 1.5, emoji: "🌌", color: "#9ec3ff" },
   { id: "andromeda", name: "안드로메다", description: "클릭 보너스", baseCost: 1.2e93, effect: "clickBonus", multiplier: 1.2, emoji: "🌀", color: "#8fb3ff" },
@@ -719,14 +675,11 @@ export default function UniverseClicker({ userid }) {
       const mant = abs / Math.pow(10, exp);
       return sign + mant.toFixed(2) + "e" + exp;
     }
-    for (let i = NUMBER_SUFFIXES.length - 1; i >= 0; i--) {
-      const unit = Math.pow(10, NUMBER_SUFFIXES[i].exp);
-      if (abs >= unit) {
-        const v = num / unit;
-        const s = NUMBER_SUFFIXES[i].label;
-        return (Math.abs(v) >= 100 ? Math.floor(v).toLocaleString() : v.toFixed(2)) + s;
-      }
-    }
+    // 접두어 표기 제거: e 표기법 사용
+    const exp = Math.floor(Math.log10(abs));
+    const mant = abs / Math.pow(10, exp);
+    const sign = num < 0 ? "-" : "";
+    return sign + mant.toFixed(2) + "e" + exp;
     return Math.floor(num).toLocaleString();
   };
 
@@ -962,14 +915,7 @@ export default function UniverseClicker({ userid }) {
               </span>
             </div>
           </div>
-          <div className="units-help">
-            <h3>단위 안내</h3>
-            <div className="units-grid">
-              {NUMBER_SUFFIXES.map(u => (
-                <div key={u.exp} className="unit-item">10^{u.exp}: {u.label}</div>
-              ))}
-            </div>
-          </div>
+          
           <div className="prestige-section">
             <h3>🌀 평행우주(환생)</h3>
             <p>현재 에너지로 환생하면 획득 배율이 증가합니다. 환생 시 모든 업그레이드가 초기화됩니다.</p>
@@ -994,13 +940,6 @@ function ClickerRanking() {
       .then(res => { if (res.data && res.data.rankings) setList(res.data.rankings); })
       .catch(() => {});
   }, []);
-  const formatMoneyFor = (pu, energy) => {
-    const scale = Math.pow(10, 120) * Math.pow(2, pu || 0);
-    const v = energy / scale;
-    if (!Number.isFinite(v)) return String(v) + " Notg";
-    if (Math.abs(v) >= 100) return Math.floor(v).toLocaleString() + " Notg";
-    return v.toFixed(4) + " Notg";
-  };
   return (
     <div className="ranking-grid">
       {list.map(item => (
@@ -1008,7 +947,7 @@ function ClickerRanking() {
           <span className="rank">#{item.rank}</span>
           <span className="name">{item.username}</span>
           <span className="pu">환생 {item.parallel_universes}</span>
-          <span className="money">돈 {formatMoneyFor(item.parallel_universes, item.energy)}</span>
+          <span className="money">돈 {formatNumber(item.energy)}</span>
         </div>
       ))}
     </div>
