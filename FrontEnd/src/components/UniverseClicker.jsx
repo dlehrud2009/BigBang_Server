@@ -38,7 +38,7 @@ const PLANETS = [
     name: "화성",
     description: "치명타 확률 증가",
     baseCost: 6000,
-    effect: "critical", // 치명타 확률 및 배수
+    effect: "critical", // 치명타 확률
     multiplier: 2.0,
     emoji: "♂️",
     color: "#CD5C5C",
@@ -384,7 +384,7 @@ const GLOBAL_UPGRADES = [
 ];
 
 const SAVE_KEY = "universe_clicker_save_v1";
-const PRESTIGE_THRESHOLD = 1e9;
+const PRESTIGE_BASE = 1e9;
 const PRESTIGE_INCREMENT = 0.5;
 
 export default function UniverseClicker() {
@@ -721,14 +721,24 @@ export default function UniverseClicker() {
     return Math.floor(num).toLocaleString();
   };
 
+  const formatMoney = (num) => {
+    const scale = Math.pow(10, 120) * Math.pow(2, parallelUniverses);
+    const v = num / scale;
+    if (!Number.isFinite(v)) return String(v) + " Notg";
+    if (Math.abs(v) >= 100) return Math.floor(v).toLocaleString() + " Notg";
+    return v.toFixed(4) + " Notg";
+  };
+
   // 한계 증폭기 중첩 계산
   const calculatePlanetMax = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (planetLevels[id] || 0), 0);
   const calculatePlanetMaxLimit = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (PLANETS.find(p=>p.id===id)?.maxLevel || 0), 0);
   const calculateNebulaMax = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (nebulaLevels[id] || 0), 0);
   const calculateNebulaMaxLimit = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (([...NEBULAE].find(n=>n.id===id)?.maxLevel) || 0), 0);
 
+  const getPrestigeThreshold = () => PRESTIGE_BASE * Math.pow(2, parallelUniverses);
+
   // 환생(평행우주)
-  const canPrestige = energy >= PRESTIGE_THRESHOLD;
+  const canPrestige = energy >= getPrestigeThreshold();
   const doPrestige = () => {
     if (!canPrestige) return;
     setParallelUniverses((prev) => prev + 1);
@@ -792,13 +802,14 @@ export default function UniverseClicker() {
         <div className="energy-display">
           <div className="energy-main">
             <span className="energy-label">에너지:</span>
-            <span className="energy-value">{formatNumber(energy)}</span>
+            <span className="energy-value">{formatMoney(energy)}</span>
           </div>
           <div className="energy-stats">
-            <div>클릭당: {formatNumber(energyPerClick * calculateMultiplier())}</div>
-            <div>초당: {formatNumber(calculatePerSecond())}</div>
+            <div>클릭당: {formatMoney(energyPerClick * calculateMultiplier())}</div>
+            <div>초당: {formatMoney(calculatePerSecond())}</div>
             <div>크리티컬: {(0.25 * 100).toFixed(0)}% (크리티컬 피해 {(criticalDamage * 100).toFixed(0)}%)</div>
             <div>환생 배율: x{prestigeMultiplier.toFixed(2)} (평행우주 {parallelUniverses}개)</div>
+            <div>현재 단위: Notg × 2^{parallelUniverses}</div>
           </div>
           <div className="bulk-upgrade-bar">
             <button className="bulk-upgrade-button" onClick={bulkUpgrade}>전체 강화</button>
@@ -826,7 +837,7 @@ export default function UniverseClicker() {
                   top: `${clickAnimation.y}%`,
                 }}
               >
-                +{formatNumber(energyPerClick * calculateMultiplier() * (clickAnimation.type === "critical" ? criticalDamage : 1))}
+                +{formatMoney(energyPerClick * calculateMultiplier() * (clickAnimation.type === "critical" ? criticalDamage : 1))}
               </div>
             )}
           </div>
@@ -856,9 +867,7 @@ export default function UniverseClicker() {
                       <h3>{planet.name}</h3>
                       <p>{planet.description}</p>
                       <div className="upgrade-level">레벨: {level}</div>
-                      <div className="upgrade-cost">
-                        비용: {formatNumber(cost)} 에너지
-                      </div>
+                      <div className="upgrade-cost">비용: {formatMoney(cost)}</div>
                     </div>
                   </div>
                 );
@@ -883,7 +892,7 @@ export default function UniverseClicker() {
                       <h3>{g.name}</h3>
                       <p>{g.description}</p>
                       <div className="upgrade-level">레벨: {level}</div>
-                      <div className="upgrade-cost">비용: {formatNumber(Math.floor(finalCost))} 에너지</div>
+                      <div className="upgrade-cost">비용: {formatMoney(Math.floor(finalCost))}</div>
                     </div>
                   </div>
                 );
@@ -913,9 +922,7 @@ export default function UniverseClicker() {
                       <h3>{nebula.name}</h3>
                       <p>{nebula.description}</p>
                       <div className="upgrade-level">레벨: {level}</div>
-                      <div className="upgrade-cost">
-                        비용: {formatNumber(cost)} 에너지
-                      </div>
+                      <div className="upgrade-cost">비용: {formatMoney(cost)}</div>
                     </div>
                   </div>
                 );
@@ -944,7 +951,7 @@ export default function UniverseClicker() {
                     <h3>{item.name}</h3>
                     <p>{item.description}</p>
                     <div className="upgrade-level">레벨: {level}</div>
-                    <div className="upgrade-cost">비용: {formatNumber(cost)} 에너지</div>
+                    <div className="upgrade-cost">비용: {formatMoney(cost)}</div>
                   </div>
                 </div>
               );
@@ -961,16 +968,16 @@ export default function UniverseClicker() {
             </div>
             <div className="stat-item">
               <span className="stat-label">생성된 에너지:</span>
-              <span className="stat-value">{formatNumber(totalEnergyGenerated)}</span>
+              <span className="stat-value">{formatMoney(totalEnergyGenerated)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">보유 에너지:</span>
-              <span className="stat-value">{formatNumber(energy)}</span>
+              <span className="stat-value">{formatMoney(energy)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">초당 생성량:</span>
               <span className="stat-value">
-                {formatNumber(calculatePerSecond())}
+                {formatMoney(calculatePerSecond())}
               </span>
             </div>
           </div>
@@ -986,7 +993,7 @@ export default function UniverseClicker() {
             <h3>🌀 평행우주(환생)</h3>
             <p>현재 에너지로 환생하면 획득 배율이 증가합니다. 환생 시 모든 업그레이드가 초기화됩니다.</p>
             <button className={`prestige-button ${canPrestige ? "" : "disabled"}`} onClick={doPrestige} disabled={!canPrestige}>
-              환생하기 (요구 에너지 {formatNumber(PRESTIGE_THRESHOLD)})
+              환생하기 (요구 에너지 {formatMoney(getPrestigeThreshold())})
             </button>
           </div>
         </div>
