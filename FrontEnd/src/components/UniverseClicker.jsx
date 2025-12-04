@@ -412,48 +412,9 @@ export default function UniverseClicker() {
   const energyRef = useRef(0);
   useEffect(() => { energyRef.current = energy; }, [energy]);
 
-  // 저장 불러오기
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        if (typeof s.energy === "number") setEnergy(s.energy);
-        if (typeof s.energyPerClick === "number") setEnergyPerClick(s.energyPerClick);
-        if (typeof s.autoClickRate === "number") setAutoClickRate(s.autoClickRate);
-        if (typeof s.criticalDamage === "number") setCriticalDamage(s.criticalDamage);
-        if (typeof s.totalClicks === "number") setTotalClicks(s.totalClicks);
-        if (typeof s.totalEnergyGenerated === "number") setTotalEnergyGenerated(s.totalEnergyGenerated);
-        if (typeof s.planetMaxLevel === "number") setPlanetMaxLevel(s.planetMaxLevel);
-        if (typeof s.nebulaMaxLevel === "number") setNebulaMaxLevel(s.nebulaMaxLevel);
-        if (typeof s.prestigeMultiplier === "number") setPrestigeMultiplier(s.prestigeMultiplier);
-        if (typeof s.parallelUniverses === "number") setParallelUniverses(s.parallelUniverses);
-        if (s.planetLevels) setPlanetLevels(s.planetLevels);
-        if (s.nebulaLevels) setNebulaLevels(s.nebulaLevels);
-        if (s.globalLevels) setGlobalLevels(s.globalLevels);
-      }
-    } catch (e) {}
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
   }, []);
-
-  // 저장
-  useEffect(() => {
-    const s = {
-      energy,
-      energyPerClick,
-      autoClickRate,
-      criticalDamage,
-      totalClicks,
-      totalEnergyGenerated,
-      planetMaxLevel,
-      nebulaMaxLevel,
-      prestigeMultiplier,
-      parallelUniverses,
-      planetLevels,
-      nebulaLevels,
-      globalLevels,
-    };
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
-  }, [energy, energyPerClick, autoClickRate, criticalDamage, totalClicks, totalEnergyGenerated, planetMaxLevel, nebulaMaxLevel, prestigeMultiplier, parallelUniverses, planetLevels, nebulaLevels, globalLevels]);
 
   // 자동 클릭 처리
   useEffect(() => {
@@ -810,6 +771,9 @@ export default function UniverseClicker() {
 
   return (
     <div className="universe-clicker">
+      <div className="floating-money-bar">
+        <div className="floating-money">{formatNumber(energy)}</div>
+      </div>
       <div className="clicker-header">
         <h1>🌌 우주 팽창 클릭커</h1>
         <div className="energy-display">

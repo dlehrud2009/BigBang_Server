@@ -98,6 +98,28 @@
   justify-content: center;
 }
 
+.floating-money-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.floating-money {
+  margin: 8px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.5);
+  color: #ffd700;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 999px;
+  font-weight: bold;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
 .bulk-upgrade-bar {
   margin-top: 10px;
   display: flex;
