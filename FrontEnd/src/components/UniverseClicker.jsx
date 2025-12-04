@@ -378,11 +378,6 @@ const COSMOS = [
   { id: "observable", name: "관측 가능한 우주", description: "모든 효과 대폭 증가", baseCost: 1.0e95, effect: "allBoost", multiplier: 10.0, emoji: "🌌", color: "#a8bfff", maxLevel: Infinity },
 ];
 
-// 전역 강화 업그레이드
-const GLOBAL_UPGRADES = [
-  { id: "globalAmplifier", name: "전체 강화", description: "모든 획득량 배수", baseCost: 1e6, effect: "globalAmplify", multiplier: 1.2, emoji: "🔆", color: "#ffd54f" },
-  { id: "globalAutoAmplifier", name: "자동 강화", description: "자동 생성 배수", baseCost: 1e8, effect: "globalAutoAmplify", multiplier: 1.2, emoji: "⚙️", color: "#90caf9" },
-];
 
 const SAVE_KEY = "universe_clicker_save_v1";
 const PRESTIGE_BASE = 1e120;
@@ -402,7 +397,6 @@ export default function UniverseClicker({ userid }) {
   const [nebulaMaxLevel, setNebulaMaxLevel] = useState(10);
   const [prestigeMultiplier, setPrestigeMultiplier] = useState(1);
   const [parallelUniverses, setParallelUniverses] = useState(0);
-  const [globalLevels, setGlobalLevels] = useState({});
   
   // 행성 및 성운 구매 상태
   const [planetLevels, setPlanetLevels] = useState({});
@@ -436,7 +430,7 @@ export default function UniverseClicker({ userid }) {
           if (typeof st.parallelUniverses === "number") setParallelUniverses(st.parallelUniverses);
           if (st.planetLevels) setPlanetLevels(st.planetLevels);
           if (st.nebulaLevels) setNebulaLevels(st.nebulaLevels);
-          if (st.globalLevels) setGlobalLevels(st.globalLevels);
+          
         }
       })
       .catch(() => {});
@@ -462,13 +456,12 @@ export default function UniverseClicker({ userid }) {
         parallelUniverses,
         planetLevels,
         nebulaLevels,
-        globalLevels,
       };
       axios.post(`${API_BASE}/api/clicker/state`, { userid, state: st })
         .catch(() => {});
     }, 1000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [userid, energy, energyPerClick, autoClickRate, criticalChance, criticalDamage, totalClicks, totalEnergyGenerated, planetMaxLevel, nebulaMaxLevel, prestigeMultiplier, parallelUniverses, planetLevels, nebulaLevels, globalLevels]);
+  }, [userid, energy, energyPerClick, autoClickRate, criticalChance, criticalDamage, totalClicks, totalEnergyGenerated, planetMaxLevel, nebulaMaxLevel, prestigeMultiplier, parallelUniverses, planetLevels, nebulaLevels]);
 
   // 자동 클릭 처리
   useEffect(() => {
@@ -542,13 +535,6 @@ export default function UniverseClicker({ userid }) {
       }
     });
 
-    // 전역 강화
-    GLOBAL_UPGRADES.forEach((g) => {
-      const level = globalLevels[g.id] || 0;
-      if (level > 0 && g.effect === "globalAmplify") {
-        multiplier *= Math.pow(g.multiplier, level);
-      }
-    });
 
     // 환생 배율
     multiplier *= prestigeMultiplier;
@@ -599,7 +585,6 @@ export default function UniverseClicker({ userid }) {
       setClickAnimation({ type: "normal", x: Math.random() * 100, y: Math.random() * 100 });
     }
 
-    // 전역 배수 적용
     finalEnergy *= calculateMultiplier();
 
     setEnergy((prev) => prev + finalEnergy);
@@ -614,12 +599,12 @@ export default function UniverseClicker({ userid }) {
     const planet = PLANETS.find((p) => p.id === planetId);
     if (!planet) return;
 
-    const level = planetLevels[planetId] || 0;
+    const level = planetLevelsRef.current[planetId] || 0;
     const allowedMax = planet.effect === "increasePlanetMax" ? (planet.maxLevel ?? Infinity) : calculatePlanetMax();
     if (level >= allowedMax) return;
     const cost = Math.floor(planet.baseCost * Math.pow(1.5, level));
 
-    if (energy >= cost) {
+    if (energyRef.current >= cost) {
       setEnergy((prev) => prev - cost);
       setPlanetLevels((prev) => ({ ...prev, [planetId]: level + 1 }));
 
@@ -652,12 +637,12 @@ export default function UniverseClicker({ userid }) {
     const nebula = [...NEBULAE, ...COSMOS].find((n) => n.id === nebulaId);
     if (!nebula) return;
 
-    const level = nebulaLevels[nebulaId] || 0;
+    const level = nebulaLevelsRef.current[nebulaId] || 0;
     const allowedMax = nebula.effect === "increaseNebulaMax" ? (nebula.maxLevel ?? Infinity) : calculateNebulaMax();
     if (level >= allowedMax) return;
     const cost = Math.floor(nebula.baseCost * Math.pow(2, level));
 
-    if (energy >= cost) {
+    if (energyRef.current >= cost) {
       setEnergy((prev) => prev - cost);
       setNebulaLevels((prev) => ({ ...prev, [nebulaId]: level + 1 }));
 
@@ -717,11 +702,6 @@ export default function UniverseClicker({ userid }) {
       const lvl = nebulaLevels[src.id] || 0;
       if (lvl > 0) base *= Math.pow(src.multiplier, lvl);
     });
-    const autoGlobal = GLOBAL_UPGRADES.find(g => g.effect === "globalAutoAmplify");
-    if (autoGlobal) {
-      const lvl = globalLevels[autoGlobal.id] || 0;
-      if (lvl > 0) base *= Math.pow(autoGlobal.multiplier, lvl);
-    }
     return base * calculateMultiplier();
   };
 
@@ -750,9 +730,9 @@ export default function UniverseClicker({ userid }) {
   };
 
   // 한계 증폭기 중첩 계산
-  const calculatePlanetMax = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (planetLevels[id] || 0), 0);
+  const calculatePlanetMax = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (planetLevelsRef.current[id] || 0), 0);
   const calculatePlanetMaxLimit = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (PLANETS.find(p=>p.id===id)?.maxLevel || 0), 0);
-  const calculateNebulaMax = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (nebulaLevels[id] || 0), 0);
+  const calculateNebulaMax = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (nebulaLevelsRef.current[id] || 0), 0);
   const calculateNebulaMaxLimit = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (([...NEBULAE].find(n=>n.id===id)?.maxLevel) || 0), 0);
 
   const getPrestigeThreshold = () => PRESTIGE_BASE * Math.pow(2, parallelUniverses);
@@ -769,58 +749,32 @@ export default function UniverseClicker({ userid }) {
     setCriticalDamage(2.0);
     setPlanetLevels({});
     setNebulaLevels({});
-    setGlobalLevels({});
     setPlanetMaxLevel(10);
     setNebulaMaxLevel(10);
     setTotalClicks(0);
     setTotalEnergyGenerated(0);
   };
 
-  const buyGlobalUpgrade = (gId) => {
-    const g = GLOBAL_UPGRADES.find(x => x.id === gId);
-    if (!g) return false;
-    const level = globalLevels[g.id] || 0;
-    const base = Math.floor(g.baseCost * Math.pow(2, level));
-    const reducers = [...NEBULAE, ...COSMOS].filter(n => n.effect === "costReduction");
-    let finalCost = base;
-    reducers.forEach(r => { const lvl = nebulaLevels[r.id] || 0; if (lvl > 0) finalCost *= Math.pow(r.multiplier, lvl); });
-    finalCost = Math.floor(finalCost);
-    if (energy < finalCost) return false;
-    setEnergy(prev => prev - finalCost);
-    setGlobalLevels(prev => ({ ...prev, [g.id]: level + 1 }));
-    return true;
-  };
+  const planetLevelsRef = useRef({});
+  useEffect(() => { planetLevelsRef.current = planetLevels; }, [planetLevels]);
+  const nebulaLevelsRef = useRef({});
+  useEffect(() => { nebulaLevelsRef.current = nebulaLevels; }, [nebulaLevels]);
 
-  const bulkUpgrade = () => {
-    const attemptOnce = () => {
-      const candidates = [];
-      PLANETS.forEach(p => {
-        const level = planetLevels[p.id] || 0;
-        const allowedMax = p.effect === "increasePlanetMax" ? (p.maxLevel ?? Infinity) : calculatePlanetMax();
-        if (level < allowedMax) candidates.push({ type: "planet", id: p.id, cost: getPlanetCost(p.id) });
-      });
-      [...NEBULAE, ...COSMOS].forEach(n => {
-        const level = nebulaLevels[n.id] || 0;
-        const allowedMax = n.effect === "increaseNebulaMax" ? (n.maxLevel ?? Infinity) : (n.maxLevel ?? calculateNebulaMax());
-        if (level < allowedMax) candidates.push({ type: "nebula", id: n.id, cost: getNebulaCost(n.id) });
-      });
-      GLOBAL_UPGRADES.forEach(g => {
-        const level = globalLevels[g.id] || 0;
-        const base = Math.floor(g.baseCost * Math.pow(2, level));
-        const reducers = [...NEBULAE, ...COSMOS].filter(n => n.effect === "costReduction");
-        let finalCost = base;
-        reducers.forEach(r => { const lvl = nebulaLevels[r.id] || 0; if (lvl > 0) finalCost *= Math.pow(r.multiplier, lvl); });
-        candidates.push({ type: "global", id: g.id, cost: Math.floor(finalCost) });
-      });
-      candidates.sort((a,b) => a.cost - b.cost);
-      const affordable = candidates.find(c => energyRef.current >= c.cost);
-      if (!affordable) return;
-      if (affordable.type === "planet") buyPlanet(affordable.id);
-      else if (affordable.type === "nebula") buyNebula(affordable.id);
-      else buyGlobalUpgrade(affordable.id);
-      setTimeout(attemptOnce, 0);
-    };
-    attemptOnce();
+  const pressTimerRef = useRef(null);
+  const startContinuousBuy = (type, id) => {
+    if (pressTimerRef.current) clearInterval(pressTimerRef.current);
+    if (type === "planet") buyPlanet(id);
+    else if (type === "nebula") buyNebula(id);
+    pressTimerRef.current = setInterval(() => {
+      if (type === "planet") buyPlanet(id);
+      else if (type === "nebula") buyNebula(id);
+    }, 100);
+  };
+  const stopContinuousBuy = () => {
+    if (pressTimerRef.current) {
+      clearInterval(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
   };
 
   return (
@@ -842,9 +796,7 @@ export default function UniverseClicker({ userid }) {
             <div>평행 우주: x{prestigeMultiplier.toFixed(2)} (환생 {parallelUniverses}개)</div>
             
           </div>
-          <div className="bulk-upgrade-bar">
-            <button className="bulk-upgrade-button" onClick={bulkUpgrade}>전체 강화</button>
-          </div>
+          
         </div>
       </div>
 
@@ -889,7 +841,11 @@ export default function UniverseClicker({ userid }) {
                   <div
                     key={planet.id}
                     className={`upgrade-card planet-card ${canBuy ? "" : "disabled"}`}
-                    onClick={() => canBuy && buyPlanet(planet.id)}
+                    onMouseDown={() => canBuy && startContinuousBuy("planet", planet.id)}
+                    onMouseUp={stopContinuousBuy}
+                    onMouseLeave={stopContinuousBuy}
+                    onTouchStart={() => canBuy && startContinuousBuy("planet", planet.id)}
+                    onTouchEnd={stopContinuousBuy}
                   >
                     <div className="upgrade-emoji" style={{ color: planet.color }}>
                       {planet.emoji}
@@ -906,30 +862,7 @@ export default function UniverseClicker({ userid }) {
             </div>
           </div>
 
-          <div className="global-section">
-            <h2>🌟 전역 강화</h2>
-            <div className="upgrade-grid">
-              {GLOBAL_UPGRADES.map((g) => {
-                const level = globalLevels[g.id] || 0;
-                const cost = Math.floor(g.baseCost * Math.pow(2, level));
-                const reducers = [...NEBULAE, ...COSMOS].filter(n => n.effect === "costReduction");
-                let finalCost = cost;
-                reducers.forEach(r => { const lvl = nebulaLevels[r.id] || 0; if (lvl > 0) finalCost *= Math.pow(r.multiplier, lvl); });
-                const canBuy = energy >= finalCost;
-                return (
-                  <div key={g.id} className={`upgrade-card nebula-card ${canBuy ? "" : "disabled"}`} onClick={() => { if (canBuy) buyGlobalUpgrade(g.id); }}>
-                    <div className="upgrade-emoji" style={{ color: g.color }}>{g.emoji}</div>
-                    <div className="upgrade-info">
-                      <h3>{g.name}</h3>
-                      <p>{g.description}</p>
-                      <div className="upgrade-level">레벨: {level}</div>
-                      <div className="upgrade-cost">비용: {formatNumber(Math.floor(finalCost))}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          
 
           <div className="nebulae-section">
             <h2>🌌 성운 업그레이드</h2>
@@ -944,7 +877,11 @@ export default function UniverseClicker({ userid }) {
                   <div
                     key={nebula.id}
                     className={`upgrade-card nebula-card ${canBuy ? "" : "disabled"}`}
-                    onClick={() => canBuy && buyNebula(nebula.id)}
+                    onMouseDown={() => canBuy && startContinuousBuy("nebula", nebula.id)}
+                    onMouseUp={stopContinuousBuy}
+                    onMouseLeave={stopContinuousBuy}
+                    onTouchStart={() => canBuy && startContinuousBuy("nebula", nebula.id)}
+                    onTouchEnd={stopContinuousBuy}
                   >
                     <div className="upgrade-emoji" style={{ color: nebula.color }}>
                       {nebula.emoji}
@@ -973,7 +910,11 @@ export default function UniverseClicker({ userid }) {
                 <div
                   key={item.id}
                   className={`upgrade-card nebula-card ${canBuy ? "" : "disabled"}`}
-                  onClick={() => canBuy && buyNebula(item.id)}
+                  onMouseDown={() => canBuy && startContinuousBuy("nebula", item.id)}
+                  onMouseUp={stopContinuousBuy}
+                  onMouseLeave={stopContinuousBuy}
+                  onTouchStart={() => canBuy && startContinuousBuy("nebula", item.id)}
+                  onTouchEnd={stopContinuousBuy}
                 >
                   <div className="upgrade-emoji" style={{ color: item.color }}>
                     {item.emoji}
