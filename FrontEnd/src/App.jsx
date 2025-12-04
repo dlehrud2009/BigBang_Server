@@ -128,7 +128,7 @@ export default function App() {
         <button className="back-button" onClick={() => setCurrentView("menu")}>
           ← 메뉴로
         </button>
-        <UniverseClicker />
+        <UniverseClicker userid={userid} />
       </div>
     );
   }

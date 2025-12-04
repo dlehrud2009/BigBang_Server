@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import "./UniverseClicker.css";
 
 // 행성 데이터 - 각 행성마다 고유 효과
@@ -387,7 +388,9 @@ const SAVE_KEY = "universe_clicker_save_v1";
 const PRESTIGE_BASE = 1e120;
 const PRESTIGE_INCREMENT = 0.5;
 
-export default function UniverseClicker() {
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:4000";
+
+export default function UniverseClicker({ userid }) {
   const [energy, setEnergy] = useState(0);
   const [energyPerClick, setEnergyPerClick] = useState(1);
   const [autoClickRate, setAutoClickRate] = useState(0);
@@ -413,8 +416,59 @@ export default function UniverseClicker() {
   useEffect(() => { energyRef.current = energy; }, [energy]);
 
   useEffect(() => {
-    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
-  }, []);
+    if (!userid) return;
+    let mounted = true;
+    axios.get(`${API_BASE}/api/clicker/state`, { params: { userid } })
+      .then(res => {
+        if (!mounted) return;
+        const st = res.data && res.data.state;
+        if (st) {
+          if (typeof st.energy === "number") setEnergy(st.energy);
+          if (typeof st.energyPerClick === "number") setEnergyPerClick(st.energyPerClick);
+          if (typeof st.autoClickRate === "number") setAutoClickRate(st.autoClickRate);
+          if (typeof st.criticalChance === "number") setCriticalChance(st.criticalChance);
+          if (typeof st.criticalDamage === "number") setCriticalDamage(st.criticalDamage);
+          if (typeof st.totalClicks === "number") setTotalClicks(st.totalClicks);
+          if (typeof st.totalEnergyGenerated === "number") setTotalEnergyGenerated(st.totalEnergyGenerated);
+          if (typeof st.planetMaxLevel === "number") setPlanetMaxLevel(st.planetMaxLevel);
+          if (typeof st.nebulaMaxLevel === "number") setNebulaMaxLevel(st.nebulaMaxLevel);
+          if (typeof st.prestigeMultiplier === "number") setPrestigeMultiplier(st.prestigeMultiplier);
+          if (typeof st.parallelUniverses === "number") setParallelUniverses(st.parallelUniverses);
+          if (st.planetLevels) setPlanetLevels(st.planetLevels);
+          if (st.nebulaLevels) setNebulaLevels(st.nebulaLevels);
+          if (st.globalLevels) setGlobalLevels(st.globalLevels);
+        }
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, [userid]);
+
+  const saveTimerRef = useRef(null);
+  useEffect(() => {
+    if (!userid) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const st = {
+        energy,
+        energyPerClick,
+        autoClickRate,
+        criticalChance,
+        criticalDamage,
+        totalClicks,
+        totalEnergyGenerated,
+        planetMaxLevel,
+        nebulaMaxLevel,
+        prestigeMultiplier,
+        parallelUniverses,
+        planetLevels,
+        nebulaLevels,
+        globalLevels,
+      };
+      axios.post(`${API_BASE}/api/clicker/state`, { userid, state: st })
+        .catch(() => {});
+    }, 1000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [userid, energy, energyPerClick, autoClickRate, criticalChance, criticalDamage, totalClicks, totalEnergyGenerated, planetMaxLevel, nebulaMaxLevel, prestigeMultiplier, parallelUniverses, planetLevels, nebulaLevels, globalLevels]);
 
   // 자동 클릭 처리
   useEffect(() => {

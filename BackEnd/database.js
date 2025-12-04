@@ -69,6 +69,32 @@ function initializeDatabase() {
         }
         console.log("blackhole_scores 테이블 준비 완료");
 
+        db.run(
+          `CREATE TABLE IF NOT EXISTS clicker_state (
+            userid INTEGER PRIMARY KEY,
+            energy REAL NOT NULL,
+            updated_at INTEGER NOT NULL
+          )`
+        , (tblErr) => {
+          if (tblErr) {
+            console.error("clicker_state 테이블 생성 오류:", tblErr.message);
+            reject(tblErr);
+            return;
+          }
+
+          db.run(`
+            CREATE TABLE IF NOT EXISTS clicker_state_full (
+              userid INTEGER PRIMARY KEY,
+              state TEXT NOT NULL,
+              updated_at INTEGER NOT NULL
+            )
+          `, (tblErr2) => {
+            if (tblErr2) {
+              console.error("clicker_state_full 테이블 생성 오류:", tblErr2.message);
+              reject(tblErr2);
+              return;
+            }
+
         // 인덱스 생성 (성능 향상)
         db.run(`
           CREATE INDEX IF NOT EXISTS idx_username ON users(username)
@@ -112,8 +138,10 @@ function initializeDatabase() {
             );
           });
         });
+          });
+        });
+        });
       });
-    });
   });
 }
 
@@ -241,6 +269,84 @@ function saveBlackHoleScore(userid, username, score, difficulty, callback) {
   });
 }
 
+function saveClickerState(userid, stateObj, callback) {
+  const now = Date.now();
+  const stateStr = JSON.stringify(stateObj || {});
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker_full: [] };
+    const idx = global.__MEM_DB__.clicker_full.findIndex(s => s.userid === userid);
+    if (idx === -1) {
+      global.__MEM_DB__.clicker_full.push({ userid, state: stateStr, updated_at: now });
+    } else {
+      global.__MEM_DB__.clicker_full[idx] = { userid, state: stateStr, updated_at: now };
+    }
+    return callback && callback(null, { userid, state: JSON.parse(stateStr), updated_at: now });
+  }
+  ensureInitialized(() => {
+    const sql = `INSERT INTO clicker_state_full (userid, state, updated_at) VALUES (?, ?, ?)
+                 ON CONFLICT(userid) DO UPDATE SET state=excluded.state, updated_at=excluded.updated_at`;
+    db.run(sql, [userid, stateStr, now], function(err) {
+      if (err) return callback && callback(err, null);
+      callback && callback(null, { userid, state: JSON.parse(stateStr), updated_at: now });
+    });
+  });
+}
+
+function getClickerState(userid, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker_full: [] };
+    const row = global.__MEM_DB__.clicker_full.find(s => s.userid === userid);
+    const state = row ? (typeof row.state === 'string' ? JSON.parse(row.state) : row.state) : {};
+    return callback && callback(null, { userid, state, updated_at: row ? row.updated_at : Date.now() });
+  }
+  ensureInitialized(() => {
+    const sql = `SELECT userid, state, updated_at FROM clicker_state_full WHERE userid = ? LIMIT 1`;
+    db.get(sql, [userid], (err, row) => {
+      if (err) return callback && callback(err, null);
+      const state = row && row.state ? JSON.parse(row.state) : {};
+      callback && callback(null, { userid, state, updated_at: row ? row.updated_at : Date.now() });
+    });
+  });
+}
+
+function saveClickerEnergy(userid, energy, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker: [] };
+    const now = Date.now();
+    const idx = global.__MEM_DB__.clicker.findIndex(s => s.userid === userid);
+    if (idx === -1) {
+      global.__MEM_DB__.clicker.push({ userid, energy, updated_at: now });
+    } else {
+      global.__MEM_DB__.clicker[idx] = { userid, energy, updated_at: now };
+    }
+    return callback && callback(null, { userid, energy, updated_at: now });
+  }
+  ensureInitialized(() => {
+    const now = Date.now();
+    const sql = `INSERT INTO clicker_state (userid, energy, updated_at) VALUES (?, ?, ?)
+                 ON CONFLICT(userid) DO UPDATE SET energy=excluded.energy, updated_at=excluded.updated_at`;
+    db.run(sql, [userid, energy, now], function(err) {
+      if (err) return callback && callback(err, null);
+      callback && callback(null, { userid, energy, updated_at: now });
+    });
+  });
+}
+
+function getClickerEnergy(userid, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker: [] };
+    const row = global.__MEM_DB__.clicker.find(s => s.userid === userid);
+    return callback && callback(null, row || { userid, energy: 0, updated_at: Date.now() });
+  }
+  ensureInitialized(() => {
+    const sql = `SELECT userid, energy, updated_at FROM clicker_state WHERE userid = ? LIMIT 1`;
+    db.get(sql, [userid], (err, row) => {
+      if (err) return callback && callback(err, null);
+      callback && callback(null, row || { userid, energy: 0, updated_at: Date.now() });
+    });
+  });
+}
+
 // 블랙홀 랭킹 조회
 function getBlackHoleRankings(limit = 10, difficulty = null, callback) {
   if (!sqlite3) {
@@ -342,4 +448,8 @@ module.exports = {
       });
     });
   },
+  saveClickerEnergy,
+  getClickerEnergy,
+  saveClickerState,
+  getClickerState,
 };

@@ -13,6 +13,10 @@ const {
   getBlackHoleRankings,
   getUserRank,
   resetDatabase,
+  saveClickerEnergy,
+  getClickerEnergy,
+  saveClickerState,
+  getClickerState,
 } = require("./database");
 
 const app = express();
@@ -245,6 +249,47 @@ app.get("/api/blackhole/ranking", (req, res) => {
 // 헬스 체크 엔드포인트
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" });
+});
+
+app.get("/api/clicker/energy", (req, res) => {
+  const userid = parseInt(req.query.userid);
+  if (!userid) return res.status(400).json({ success: false, message: "userid 필요" });
+  getClickerEnergy(userid, (err, row) => {
+    if (err) return res.status(500).json({ success: false, message: "조회 오류" });
+    res.json({ success: true, userid: row.userid, energy: row.energy, updated_at: row.updated_at });
+  });
+});
+
+app.post("/api/clicker/energy", (req, res) => {
+  const { userid, energy } = req.body;
+  if (!userid || energy === undefined) return res.status(400).json({ success: false, message: "필수 정보 누락" });
+  const parsedUserId = parseInt(userid);
+  const parsedEnergy = Number(energy);
+  if (!Number.isFinite(parsedUserId) || !Number.isFinite(parsedEnergy)) return res.status(400).json({ success: false, message: "형식 오류" });
+  saveClickerEnergy(parsedUserId, parsedEnergy, (err, row) => {
+    if (err) return res.status(500).json({ success: false, message: "저장 오류" });
+    res.json({ success: true, userid: row.userid, energy: row.energy, updated_at: row.updated_at });
+  });
+});
+
+app.get("/api/clicker/state", (req, res) => {
+  const userid = parseInt(req.query.userid);
+  if (!userid) return res.status(400).json({ success: false, message: "userid 필요" });
+  getClickerState(userid, (err, row) => {
+    if (err) return res.status(500).json({ success: false, message: "조회 오류" });
+    res.json({ success: true, userid: row.userid, state: row.state, updated_at: row.updated_at });
+  });
+});
+
+app.post("/api/clicker/state", (req, res) => {
+  const { userid, state } = req.body;
+  if (!userid || !state) return res.status(400).json({ success: false, message: "필수 정보 누락" });
+  const parsedUserId = parseInt(userid);
+  if (!Number.isFinite(parsedUserId)) return res.status(400).json({ success: false, message: "형식 오류" });
+  saveClickerState(parsedUserId, state, (err, row) => {
+    if (err) return res.status(500).json({ success: false, message: "저장 오류" });
+    res.json({ success: true, userid: row.userid, state: row.state, updated_at: row.updated_at });
+  });
 });
 
 // 관리자: 데이터베이스 초기화
