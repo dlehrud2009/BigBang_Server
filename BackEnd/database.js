@@ -1,0 +1,325 @@
+const path = require("path");
+let sqlite3;
+try {
+  sqlite3 = require("sqlite3").verbose();
+} catch (e) {
+  sqlite3 = null;
+}
+
+const DB_PATH = path.join(__dirname, "database.db");
+
+let db;
+let isInitialized = false;
+let initPromise;
+if (sqlite3) {
+  initPromise = new Promise((resolve, reject) => {
+    db = new sqlite3.Database(DB_PATH, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        db.run("PRAGMA foreign_keys = ON", () => {});
+        initializeDatabase()
+          .then(() => {
+            isInitialized = true;
+            resolve();
+          })
+          .catch(reject);
+      }
+    });
+  });
+} else {
+  initPromise = Promise.resolve();
+  isInitialized = true;
+}
+
+// 데이터베이스 초기화 (Promise 기반)
+function initializeDatabase() {
+  return new Promise((resolve, reject) => {
+    // 사용자 테이블 생성
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) {
+        console.error("users 테이블 생성 오류:", err.message);
+        reject(err);
+        return;
+      }
+      console.log("users 테이블 준비 완료");
+
+      // 블랙홀 점수 테이블 생성
+      db.run(`
+        CREATE TABLE IF NOT EXISTS blackhole_scores (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userid INTEGER NOT NULL,
+          username TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          difficulty TEXT NOT NULL,
+          timestamp INTEGER NOT NULL
+        )
+      `, (err) => {
+        if (err) {
+          console.error("blackhole_scores 테이블 생성 오류:", err.message);
+          reject(err);
+          return;
+        }
+        console.log("blackhole_scores 테이블 준비 완료");
+
+        // 인덱스 생성 (성능 향상)
+        db.run(`
+          CREATE INDEX IF NOT EXISTS idx_username ON users(username)
+        `, (err) => {
+          if (err) console.warn("idx_username 인덱스 생성 경고:", err.message);
+        });
+
+        db.run(`
+          CREATE INDEX IF NOT EXISTS idx_score ON blackhole_scores(score DESC)
+        `, (err) => {
+          if (err) console.warn("idx_score 인덱스 생성 경고:", err.message);
+        });
+
+        db.run(`
+          CREATE INDEX IF NOT EXISTS idx_difficulty ON blackhole_scores(difficulty)
+        `, (err) => {
+          if (err) {
+            console.warn("idx_difficulty 인덱스 생성 경고:", err.message);
+          }
+          const cleanupSql = `
+            DELETE FROM blackhole_scores AS b
+            WHERE EXISTS (
+              SELECT 1 FROM blackhole_scores AS b2
+              WHERE b2.userid = b.userid AND b2.difficulty = b.difficulty
+                AND (b2.score > b.score OR (b2.score = b.score AND b2.timestamp < b.timestamp))
+            )
+          `;
+          db.run(cleanupSql, (cleanupErr) => {
+            if (cleanupErr) {
+              console.warn("중복 점수 정리 경고:", cleanupErr.message);
+            }
+            db.run(
+              `CREATE UNIQUE INDEX IF NOT EXISTS idx_user_difficulty ON blackhole_scores(userid, difficulty)`,
+              (uniqErr) => {
+                if (uniqErr) {
+                  console.warn("고유 인덱스 생성 경고:", uniqErr.message);
+                }
+                console.log("데이터베이스 초기화 완료");
+                resolve();
+              }
+            );
+          });
+        });
+      });
+    });
+  });
+}
+
+// 초기화 완료 대기 함수
+function ensureInitialized(callback) {
+  if (isInitialized) {
+    callback();
+  } else {
+    initPromise.then(callback).catch(() => {
+      callback();
+    });
+  }
+}
+
+// 사용자 생성 (회원가입)
+function createUser(username, password, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
+    const exists = global.__MEM_DB__.users.find(u => u.username === username);
+    if (exists) return callback(new Error("이미 존재하는 ID입니다"), null);
+    const userid = global.__MEM_DB__.users.length + 1;
+    global.__MEM_DB__.users.push({ id: userid, username, password });
+    return callback(null, { userid, username });
+  }
+  ensureInitialized(() => {
+    const sql = `INSERT INTO users (username, password) VALUES (?, ?)`;
+    db.run(sql, [username, password], function(err) {
+      if (err) {
+        if (err.message.includes("UNIQUE constraint failed")) {
+          callback(new Error("이미 존재하는 ID입니다"), null);
+        } else {
+          callback(err, null);
+        }
+      } else {
+        callback(null, { userid: this.lastID, username });
+      }
+    });
+  });
+}
+
+// 사용자 조회 (로그인)
+function getUserByUsername(username, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
+    const u = global.__MEM_DB__.users.find(x => x.username === username);
+    return callback(null, u ? { id: u.id, username: u.username, password: u.password } : null);
+  }
+  ensureInitialized(() => {
+    const sql = `SELECT id, username, password FROM users WHERE username = ?`;
+    db.get(sql, [username], (err, row) => {
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, row);
+      }
+    });
+  });
+}
+
+// 사용자 ID로 조회
+function getUserById(userid, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
+    const u = global.__MEM_DB__.users.find(x => x.id === userid);
+    return callback(null, u ? { id: u.id, username: u.username } : null);
+  }
+  ensureInitialized(() => {
+    const sql = `SELECT id, username FROM users WHERE id = ?`;
+    db.get(sql, [userid], (err, row) => {
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, row);
+      }
+    });
+  });
+}
+
+// 블랙홀 점수 저장
+function saveBlackHoleScore(userid, username, score, difficulty, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
+    const now = Date.now();
+    const idx = global.__MEM_DB__.scores.findIndex(s => s.userid === userid && s.difficulty === difficulty);
+    if (idx === -1) {
+      global.__MEM_DB__.scores.push({ userid, username, score, difficulty, timestamp: now });
+      return callback(null, { bestScore: score, timestamp: now });
+    }
+    const prev = global.__MEM_DB__.scores[idx];
+    if (score > prev.score) {
+      global.__MEM_DB__.scores[idx] = { userid, username, score, difficulty, timestamp: now };
+      return callback(null, { bestScore: score, timestamp: now });
+    }
+    return callback(null, { bestScore: prev.score, timestamp: prev.timestamp });
+  }
+  ensureInitialized(() => {
+    const now = Date.now();
+    const selectSql = `SELECT id, score, timestamp FROM blackhole_scores WHERE userid = ? AND difficulty = ? LIMIT 1`;
+    db.get(selectSql, [userid, difficulty], (selErr, row) => {
+      if (selErr) {
+        return callback(selErr, null);
+      }
+      if (!row) {
+        const insertSql = `INSERT INTO blackhole_scores (userid, username, score, difficulty, timestamp) VALUES (?, ?, ?, ?, ?)`;
+        db.run(insertSql, [userid, username, score, difficulty, now], function(insErr) {
+          if (insErr) {
+            return callback(insErr, null);
+          }
+          callback(null, { bestScore: score, timestamp: now });
+        });
+      } else {
+        if (score > row.score) {
+          const updateSql = `UPDATE blackhole_scores SET username = ?, score = ?, timestamp = ? WHERE id = ?`;
+          db.run(updateSql, [username, score, now, row.id], function(upErr) {
+            if (upErr) {
+              return callback(upErr, null);
+            }
+            callback(null, { bestScore: score, timestamp: now });
+          });
+        } else {
+          callback(null, { bestScore: row.score, timestamp: row.timestamp });
+        }
+      }
+    });
+  });
+}
+
+// 블랙홀 랭킹 조회
+function getBlackHoleRankings(limit = 10, difficulty = null, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
+    let arr = [...global.__MEM_DB__.scores];
+    if (difficulty && difficulty !== "all") arr = arr.filter(s => s.difficulty === difficulty);
+    arr.sort((a, b) => (b.score - a.score) || (b.timestamp - a.timestamp));
+    const rankings = arr.slice(0, limit).map((row, idx) => ({ rank: idx + 1, ...row }));
+    return callback(null, rankings);
+  }
+  ensureInitialized(() => {
+    let sql = `SELECT userid, username, score, difficulty, timestamp FROM blackhole_scores`;
+    const params = [];
+    if (difficulty && difficulty !== "all") {
+      sql += ` WHERE difficulty = ?`;
+      params.push(difficulty);
+    }
+    sql += ` ORDER BY score DESC, timestamp DESC LIMIT ?`;
+    params.push(limit);
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        callback(err, null);
+      } else {
+        const rankings = rows.map((row, idx) => ({ rank: idx + 1, ...row }));
+        callback(null, rankings);
+      }
+    });
+  });
+}
+
+// 사용자 점수 순위 조회
+function getUserRank(userid, score, timestamp, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
+    const arr = [...global.__MEM_DB__.scores].sort((a, b) => (b.score - a.score) || (b.timestamp - a.timestamp));
+    let rank = 1;
+    for (const s of arr) {
+      if (s.score > score || (s.score === score && s.timestamp < timestamp)) rank++;
+    }
+    return callback(null, rank);
+  }
+  ensureInitialized(() => {
+    const sql = `
+      SELECT COUNT(*) + 1 as rank
+      FROM blackhole_scores
+      WHERE score > ? OR (score = ? AND timestamp < ?)
+    `;
+    db.get(sql, [score, score, timestamp], (err, row) => {
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, row ? row.rank : null);
+      }
+    });
+  });
+}
+
+// 데이터베이스 연결 종료
+function closeDatabase() {
+  if (!sqlite3) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    db.close((err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+module.exports = {
+  db: () => db,
+  initPromise,
+  createUser,
+  getUserByUsername,
+  getUserById,
+  saveBlackHoleScore,
+  getBlackHoleRankings,
+  getUserRank,
+  closeDatabase,
+};
