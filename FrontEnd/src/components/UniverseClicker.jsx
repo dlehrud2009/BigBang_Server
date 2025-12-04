@@ -746,6 +746,45 @@ export default function UniverseClicker() {
     setTotalEnergyGenerated(0);
   };
 
+  const buyGlobalUpgrade = (gId) => {
+    const g = GLOBAL_UPGRADES.find(x => x.id === gId);
+    if (!g) return false;
+    const level = globalLevels[g.id] || 0;
+    const base = Math.floor(g.baseCost * Math.pow(2, level));
+    const reducers = [...NEBULAE, ...COSMOS].filter(n => n.effect === "costReduction");
+    let finalCost = base;
+    reducers.forEach(r => { const lvl = nebulaLevels[r.id] || 0; if (lvl > 0) finalCost *= Math.pow(r.multiplier, lvl); });
+    finalCost = Math.floor(finalCost);
+    if (energy < finalCost) return false;
+    setEnergy(prev => prev - finalCost);
+    setGlobalLevels(prev => ({ ...prev, [g.id]: level + 1 }));
+    return true;
+  };
+
+  const bulkUpgrade = () => {
+    let progressed = true;
+    while (progressed) {
+      progressed = false;
+      const planetCosts = PLANETS.map(p => ({ p, level: planetLevels[p.id] || 0, allowedMax: p.effect === "increasePlanetMax" ? (p.maxLevel ?? Infinity) : calculatePlanetMax(), cost: getPlanetCost(p.id) }))
+        .filter(x => x.level < x.allowedMax)
+        .sort((a,b) => a.cost - b.cost);
+      for (const x of planetCosts) {
+        if (energy >= x.cost) { buyPlanet(x.p.id); progressed = true; }
+      }
+      const nebulaList = [...NEBULAE, ...COSMOS];
+      const nebulaCosts = nebulaList.map(n => ({ n, level: nebulaLevels[n.id] || 0, allowedMax: n.effect === "increaseNebulaMax" ? (n.maxLevel ?? Infinity) : (n.maxLevel ?? calculateNebulaMax()), cost: getNebulaCost(n.id) }))
+        .filter(x => x.level < x.allowedMax)
+        .sort((a,b) => a.cost - b.cost);
+      for (const x of nebulaCosts) {
+        if (energy >= x.cost) { buyNebula(x.n.id); progressed = true; }
+      }
+      const globals = GLOBAL_UPGRADES.map(g => ({ g, level: globalLevels[g.id] || 0 })).sort((a,b) => (a.g.baseCost * Math.pow(2,a.level)) - (b.g.baseCost * Math.pow(2,b.level)));
+      for (const x of globals) {
+        if (buyGlobalUpgrade(x.g.id)) progressed = true;
+      }
+    }
+  };
+
   return (
     <div className="universe-clicker">
       <div className="clicker-header">
@@ -760,6 +799,9 @@ export default function UniverseClicker() {
             <div>초당: {formatNumber(calculatePerSecond())}</div>
             <div>크리티컬: {(0.25 * 100).toFixed(0)}% (크리티컬 피해 {(criticalDamage * 100).toFixed(0)}%)</div>
             <div>환생 배율: x{prestigeMultiplier.toFixed(2)} (평행우주 {parallelUniverses}개)</div>
+          </div>
+          <div className="bulk-upgrade-bar">
+            <button className="bulk-upgrade-button" onClick={bulkUpgrade}>전체 강화</button>
           </div>
         </div>
       </div>
@@ -825,7 +867,7 @@ export default function UniverseClicker() {
           </div>
 
           <div className="global-section">
-            <h2>🌟 전체 강화</h2>
+            <h2>🌟 전역 강화</h2>
             <div className="upgrade-grid">
               {GLOBAL_UPGRADES.map((g) => {
                 const level = globalLevels[g.id] || 0;

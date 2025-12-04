@@ -35,7 +35,8 @@
 }
 
 .clicker-header {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 1;
   text-align: center;
   margin-bottom: 30px;
@@ -44,6 +45,7 @@
   border-radius: 15px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
 }
 
 .clicker-header h1 {
@@ -94,6 +96,28 @@
   color: #b0b0b0;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.bulk-upgrade-bar {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+.bulk-upgrade-button {
+  background: linear-gradient(135deg, #ffd54f, #ffb300);
+  color: #1a1a1a;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.bulk-upgrade-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .clicker-content {
@@ -422,4 +446,3 @@
     font-size: 1.8em;
   }
 }
-
