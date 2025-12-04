@@ -47,20 +47,20 @@ const PLANETS = [
   {
     id: "jupiter",
     name: "목성",
-    description: "행성 효과 5% 강화",
+    description: "행성 효과 10% 강화",
     baseCost: 25000,
     effect: "planetBoost", // 모든 행성 효과 강화
-    multiplier: 1.05,
+    multiplier: 1.1,
     emoji: "♃",
     color: "#D8CA9D",
   },
   {
     id: "saturn",
     name: "토성",
-    description: "에너지 생성 속도 10% 증가",
+    description: "에너지 생성 속도 20% 증가",
     baseCost: 75000,
     effect: "generationSpeed", // 자동 생성 속도 증가
-    multiplier: 1.1,
+    multiplier: 1.2,
     emoji: "♄",
     color: "#FAD5A5",
   },
@@ -77,10 +77,10 @@ const PLANETS = [
   {
     id: "neptune",
     name: "해왕성",
-    description: "전체 생산량 5% 증가",
+    description: "전체 생산량 10% 증가",
     baseCost: 1000000,
     effect: "globalProduction", // 전체 생산량 증가
-    multiplier: 1.05,
+    multiplier: 1.10,
     emoji: "♆",
     color: "#4166F5",
   },
