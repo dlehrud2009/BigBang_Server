@@ -95,6 +95,22 @@ function initializeDatabase() {
               return;
             }
 
+            db.run(`
+              CREATE TABLE IF NOT EXISTS clicker_rankings (
+                userid INTEGER PRIMARY KEY,
+                username TEXT NOT NULL,
+                parallel_universes INTEGER NOT NULL,
+                energy REAL NOT NULL,
+                updated_at INTEGER NOT NULL
+              )
+            `, (tblErr3) => {
+              if (tblErr3) {
+                console.error("clicker_rankings 테이블 생성 오류:", tblErr3.message);
+                reject(tblErr3);
+                return;
+              }
+
+        
         // 인덱스 생성 (성능 향상)
         db.run(`
           CREATE INDEX IF NOT EXISTS idx_username ON users(username)
@@ -114,6 +130,11 @@ function initializeDatabase() {
           if (err) {
             console.warn("idx_difficulty 인덱스 생성 경고:", err.message);
           }
+          db.run(`
+            CREATE INDEX IF NOT EXISTS idx_clicker_rank ON clicker_rankings(parallel_universes DESC, energy DESC)
+          `, (idxErr) => {
+            if (idxErr) console.warn("idx_clicker_rank 인덱스 생성 경고:", idxErr.message);
+          });
           const cleanupSql = `
             DELETE FROM blackhole_scores AS b
             WHERE EXISTS (
@@ -138,6 +159,7 @@ function initializeDatabase() {
             );
           });
         });
+            });
           });
         });
         });
@@ -347,6 +369,46 @@ function getClickerEnergy(userid, callback) {
   });
 }
 
+function saveClickerRanking(userid, username, parallelUniverses, energy, callback) {
+  const now = Date.now();
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker_rank: [] };
+    const idx = global.__MEM_DB__.clicker_rank.findIndex(s => s.userid === userid);
+    const row = { userid, username: username || "Unknown", parallel_universes: parseInt(parallelUniverses) || 0, energy: Number(energy) || 0, updated_at: now };
+    if (idx === -1) {
+      global.__MEM_DB__.clicker_rank.push(row);
+    } else {
+      global.__MEM_DB__.clicker_rank[idx] = row;
+    }
+    return callback && callback(null, row);
+  }
+  ensureInitialized(() => {
+    const sql = `INSERT INTO clicker_rankings (userid, username, parallel_universes, energy, updated_at) VALUES (?, ?, ?, ?, ?)
+                 ON CONFLICT(userid) DO UPDATE SET username=excluded.username, parallel_universes=excluded.parallel_universes, energy=excluded.energy, updated_at=excluded.updated_at`;
+    db.run(sql, [userid, username || "Unknown", parseInt(parallelUniverses) || 0, Number(energy) || 0, now], function(err) {
+      if (err) return callback && callback(err, null);
+      callback && callback(null, { userid, username: username || "Unknown", parallel_universes: parseInt(parallelUniverses) || 0, energy: Number(energy) || 0, updated_at: now });
+    });
+  });
+}
+
+function getClickerRankings(limit = 10, callback) {
+  if (!sqlite3) {
+    global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [], clicker_rank: [] };
+    const arr = [...global.__MEM_DB__.clicker_rank].sort((a, b) => (b.parallel_universes - a.parallel_universes) || (b.energy - a.energy) || (b.updated_at - a.updated_at));
+    const rows = arr.slice(0, limit).map((row, idx) => ({ rank: idx + 1, ...row }));
+    return callback && callback(null, rows);
+  }
+  ensureInitialized(() => {
+    const sql = `SELECT userid, username, parallel_universes, energy, updated_at FROM clicker_rankings ORDER BY parallel_universes DESC, energy DESC, updated_at DESC LIMIT ?`;
+    db.all(sql, [limit], (err, rows) => {
+      if (err) return callback && callback(err, null);
+      const rankings = rows.map((row, idx) => ({ rank: idx + 1, ...row }));
+      callback && callback(null, rankings);
+    });
+  });
+}
+
 // 블랙홀 랭킹 조회
 function getBlackHoleRankings(limit = 10, difficulty = null, callback) {
   if (!sqlite3) {
@@ -452,4 +514,6 @@ module.exports = {
   getClickerEnergy,
   saveClickerState,
   getClickerState,
+  saveClickerRanking,
+  getClickerRankings,
 };

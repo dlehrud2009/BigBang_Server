@@ -17,6 +17,8 @@ const {
   getClickerEnergy,
   saveClickerState,
   getClickerState,
+  saveClickerRanking,
+  getClickerRankings,
 } = require("./database");
 
 const app = express();
@@ -289,6 +291,30 @@ app.post("/api/clicker/state", (req, res) => {
   saveClickerState(parsedUserId, state, (err, row) => {
     if (err) return res.status(500).json({ success: false, message: "저장 오류" });
     res.json({ success: true, userid: row.userid, state: row.state, updated_at: row.updated_at });
+  });
+});
+
+app.post("/api/clicker/ranking", (req, res) => {
+  const { userid, username, parallelUniverses, energy } = req.body;
+  if (!userid) return res.status(400).json({ success: false, message: "userid 필요" });
+  const parsedUserId = parseInt(userid);
+  const parsedParallel = parseInt(parallelUniverses || 0);
+  const parsedEnergy = Number(energy || 0);
+  if (!Number.isFinite(parsedUserId) || !Number.isFinite(parsedParallel) || !Number.isFinite(parsedEnergy)) {
+    return res.status(400).json({ success: false, message: "형식 오류" });
+  }
+  const finalUsername = username || users[parsedUserId]?.username || "Unknown";
+  saveClickerRanking(parsedUserId, finalUsername, parsedParallel, parsedEnergy, (err, row) => {
+    if (err) return res.status(500).json({ success: false, message: "저장 오류" });
+    res.json({ success: true, ranking: row });
+  });
+});
+
+app.get("/api/clicker/ranking", (req, res) => {
+  const limit = parseInt(req.query.limit) || 10;
+  getClickerRankings(limit, (err, rankings) => {
+    if (err) return res.status(500).json({ success: false, message: "조회 오류" });
+    res.json({ success: true, rankings: rankings || [] });
   });
 });
 
