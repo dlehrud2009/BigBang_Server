@@ -7,6 +7,8 @@ import BlackHoleEscape from "./components/BlackHoleEscape";
 import Login from "./components/Login";
 import "./App.css";
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:4000";
+
 export default function App() {
   const [userid, setUserId] = useState(null);
   const [username, setUsername] = useState(null);
@@ -24,7 +26,7 @@ export default function App() {
     setCurrentView("menu");
 
     // WebSocket 연결
-    socketRef.current = io("http://localhost:4000");
+    socketRef.current = io(API_BASE);
     socketRef.current.emit("join", loggedInUserId);
 
     // 서버 상태 수신 (서버는 'stageUpdated'를 emit)
@@ -56,7 +58,7 @@ export default function App() {
   const startSimulation = async () => {
     if (!userid) return;
 
-    await axios.post("http://localhost:4000/api/simulation/start", { userid });
+    await axios.post(`${API_BASE}/api/simulation/start`, { userid });
     setStatus("started");
     setStage("bigbang");
     socketRef.current.emit("start", { userid });
@@ -65,7 +67,7 @@ export default function App() {
   const pauseSimulation = async () => {
     if (!userid) return;
 
-    const res = await axios.post("http://localhost:4000/api/simulation/pause", {
+    const res = await axios.post(`${API_BASE}/api/simulation/pause`, {
       userid,
     });
     setStatus(res.data.status);
@@ -76,7 +78,7 @@ export default function App() {
   const changeStage = async (newStage) => {
     if (!userid) return;
 
-    await axios.post("http://localhost:4000/api/simulation/stage", { userid, stage: newStage });
+    await axios.post(`${API_BASE}/api/simulation/stage`, { userid, stage: newStage });
     setStage(newStage);
     // 서버 브로드캐스트는 REST로 처리되므로 별도 소켓 emit 불필요
   };

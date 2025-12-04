@@ -2,6 +2,8 @@ import { useState } from "react";
 import axios from "axios";
 import "./Login.css";
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:4000";
+
 export default function Login({ onLogin, onGuestContinue }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -71,7 +73,7 @@ export default function Login({ onLogin, onGuestContinue }) {
     try {
       if (isSignUp) {
         // 회원가입
-        const res = await axios.post("http://localhost:4000/api/auth/signup", {
+        const res = await axios.post(`${API_BASE}/api/auth/signup`, {
           username: username.trim(),
           password: password.trim(),
         });
@@ -84,7 +86,7 @@ export default function Login({ onLogin, onGuestContinue }) {
         }
       } else {
         // 로그인
-        const res = await axios.post("http://localhost:4000/api/auth/login", {
+        const res = await axios.post(`${API_BASE}/api/auth/login`, {
           username: username.trim(),
           password: password.trim(),
         });
@@ -201,4 +203,3 @@ export default function Login({ onLogin, onGuestContinue }) {
     </div>
   );
 }
-

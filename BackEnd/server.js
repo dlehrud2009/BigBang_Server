@@ -33,6 +33,7 @@ app.use((req, res, next) => {
 // 서버 메모리 상태 (세션용)
 let users = {};
 let simulationStates = {};
+let userIdCounter = 1;
 
 // API: 사용자 생성
 app.post("/api/user", (req, res) => {

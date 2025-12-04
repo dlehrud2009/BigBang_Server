@@ -2,6 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import axios from "axios";
 import "./BlackHoleEscape.css";
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:4000";
+
 const GAME_DURATION = 60000; // 60초
 const BASE_DASH_DISTANCE = 100; // 기본 대시 거리 (속도에 맞춰 증가)
 const MAX_DASH_DISTANCE = 250; // 최대 대시 거리 한도
@@ -628,7 +630,7 @@ export default function BlackHoleEscape({ userid, username }) {
     if (!userid || scoreSubmitted) return; // 로그인한 사용자만 점수 제출
     
     try {
-      const res = await axios.post("http://localhost:4000/api/blackhole/score", {
+      const res = await axios.post(`${API_BASE}/api/blackhole/score`, {
         userid,
         username: username || "Guest",
         score: finalScore,
@@ -649,7 +651,7 @@ export default function BlackHoleEscape({ userid, username }) {
   // 랭킹 조회
   const loadRankings = async (difficulty = "all") => {
     try {
-      const res = await axios.get("http://localhost:4000/api/blackhole/ranking", {
+      const res = await axios.get(`${API_BASE}/api/blackhole/ranking`, {
         params: { limit: 10, difficulty },
       });
       if (res.data.success) {

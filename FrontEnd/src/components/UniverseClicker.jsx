@@ -377,6 +377,16 @@ const COSMOS = [
   { id: "observable", name: "관측 가능한 우주", description: "모든 효과 대폭 증가", baseCost: 1.0e95, effect: "allBoost", multiplier: 10.0, emoji: "🌌", color: "#a8bfff", maxLevel: Infinity },
 ];
 
+// 전역 강화 업그레이드
+const GLOBAL_UPGRADES = [
+  { id: "globalAmplifier", name: "전체 강화", description: "모든 획득량 배수", baseCost: 1e6, effect: "globalAmplify", multiplier: 1.2, emoji: "🔆", color: "#ffd54f" },
+  { id: "globalAutoAmplifier", name: "자동 강화", description: "자동 생성 배수", baseCost: 1e8, effect: "globalAutoAmplify", multiplier: 1.2, emoji: "⚙️", color: "#90caf9" },
+];
+
+const SAVE_KEY = "universe_clicker_save_v1";
+const PRESTIGE_THRESHOLD = 1e9;
+const PRESTIGE_INCREMENT = 0.5;
+
 export default function UniverseClicker() {
   const [energy, setEnergy] = useState(0);
   const [energyPerClick, setEnergyPerClick] = useState(1);
@@ -387,6 +397,9 @@ export default function UniverseClicker() {
   const [totalEnergyGenerated, setTotalEnergyGenerated] = useState(0);
   const [planetMaxLevel, setPlanetMaxLevel] = useState(10);
   const [nebulaMaxLevel, setNebulaMaxLevel] = useState(10);
+  const [prestigeMultiplier, setPrestigeMultiplier] = useState(1);
+  const [parallelUniverses, setParallelUniverses] = useState(0);
+  const [globalLevels, setGlobalLevels] = useState({});
   
   // 행성 및 성운 구매 상태
   const [planetLevels, setPlanetLevels] = useState({});
@@ -396,6 +409,49 @@ export default function UniverseClicker() {
   const [clickAnimation, setClickAnimation] = useState(null);
   const animationRef = useRef(null);
   const lastAutoClickRef = useRef(Date.now());
+
+  // 저장 불러오기
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (typeof s.energy === "number") setEnergy(s.energy);
+        if (typeof s.energyPerClick === "number") setEnergyPerClick(s.energyPerClick);
+        if (typeof s.autoClickRate === "number") setAutoClickRate(s.autoClickRate);
+        if (typeof s.criticalDamage === "number") setCriticalDamage(s.criticalDamage);
+        if (typeof s.totalClicks === "number") setTotalClicks(s.totalClicks);
+        if (typeof s.totalEnergyGenerated === "number") setTotalEnergyGenerated(s.totalEnergyGenerated);
+        if (typeof s.planetMaxLevel === "number") setPlanetMaxLevel(s.planetMaxLevel);
+        if (typeof s.nebulaMaxLevel === "number") setNebulaMaxLevel(s.nebulaMaxLevel);
+        if (typeof s.prestigeMultiplier === "number") setPrestigeMultiplier(s.prestigeMultiplier);
+        if (typeof s.parallelUniverses === "number") setParallelUniverses(s.parallelUniverses);
+        if (s.planetLevels) setPlanetLevels(s.planetLevels);
+        if (s.nebulaLevels) setNebulaLevels(s.nebulaLevels);
+        if (s.globalLevels) setGlobalLevels(s.globalLevels);
+      }
+    } catch (e) {}
+  }, []);
+
+  // 저장
+  useEffect(() => {
+    const s = {
+      energy,
+      energyPerClick,
+      autoClickRate,
+      criticalDamage,
+      totalClicks,
+      totalEnergyGenerated,
+      planetMaxLevel,
+      nebulaMaxLevel,
+      prestigeMultiplier,
+      parallelUniverses,
+      planetLevels,
+      nebulaLevels,
+      globalLevels,
+    };
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
+  }, [energy, energyPerClick, autoClickRate, criticalDamage, totalClicks, totalEnergyGenerated, planetMaxLevel, nebulaMaxLevel, prestigeMultiplier, parallelUniverses, planetLevels, nebulaLevels, globalLevels]);
 
   // 자동 클릭 처리
   useEffect(() => {
@@ -469,6 +525,17 @@ export default function UniverseClicker() {
       }
     });
 
+    // 전역 강화
+    GLOBAL_UPGRADES.forEach((g) => {
+      const level = globalLevels[g.id] || 0;
+      if (level > 0 && g.effect === "globalAmplify") {
+        multiplier *= Math.pow(g.multiplier, level);
+      }
+    });
+
+    // 환생 배율
+    multiplier *= prestigeMultiplier;
+
     return multiplier;
   };
 
@@ -531,7 +598,7 @@ export default function UniverseClicker() {
     if (!planet) return;
 
     const level = planetLevels[planetId] || 0;
-    const allowedMax = planet.effect === "increasePlanetMax" ? (planet.maxLevel ?? Infinity) : planetMaxLevel;
+    const allowedMax = planet.effect === "increasePlanetMax" ? (planet.maxLevel ?? Infinity) : calculatePlanetMax();
     if (level >= allowedMax) return;
     const cost = Math.floor(planet.baseCost * Math.pow(1.5, level));
 
@@ -554,7 +621,7 @@ export default function UniverseClicker() {
           // 자동 생성 속도는 이미 계산됨
           break;
         case "increasePlanetMax":
-          setPlanetMaxLevel((prev) => Math.min(prev + 3, 10 + 3 * (planet.maxLevel ?? 5)));
+          setPlanetMaxLevel((prev) => Math.min(prev + 3, calculatePlanetMaxLimit()));
           break;
       }
     }
@@ -566,7 +633,7 @@ export default function UniverseClicker() {
     if (!nebula) return;
 
     const level = nebulaLevels[nebulaId] || 0;
-    const allowedMax = nebula.effect === "increaseNebulaMax" ? (nebula.maxLevel ?? Infinity) : nebulaMaxLevel;
+    const allowedMax = nebula.effect === "increaseNebulaMax" ? (nebula.maxLevel ?? Infinity) : calculateNebulaMax();
     if (level >= allowedMax) return;
     const cost = Math.floor(nebula.baseCost * Math.pow(2, level));
 
@@ -583,7 +650,7 @@ export default function UniverseClicker() {
           // 비용 감소는 구매 시 계산됨
           break;
         case "increaseNebulaMax":
-          setNebulaMaxLevel((prev) => Math.min(prev + 3, 10 + 3 * (nebula.maxLevel ?? 5)));
+          setNebulaMaxLevel((prev) => Math.min(prev + 3, calculateNebulaMaxLimit()));
           break;
       }
     }
@@ -630,6 +697,11 @@ export default function UniverseClicker() {
       const lvl = nebulaLevels[src.id] || 0;
       if (lvl > 0) base *= Math.pow(src.multiplier, lvl);
     });
+    const autoGlobal = GLOBAL_UPGRADES.find(g => g.effect === "globalAutoAmplify");
+    if (autoGlobal) {
+      const lvl = globalLevels[autoGlobal.id] || 0;
+      if (lvl > 0) base *= Math.pow(autoGlobal.multiplier, lvl);
+    }
     return base * calculateMultiplier();
   };
 
@@ -649,6 +721,31 @@ export default function UniverseClicker() {
     return Math.floor(num).toLocaleString();
   };
 
+  // 한계 증폭기 중첩 계산
+  const calculatePlanetMax = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (planetLevels[id] || 0), 0);
+  const calculatePlanetMaxLimit = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (PLANETS.find(p=>p.id===id)?.maxLevel || 0), 0);
+  const calculateNebulaMax = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (nebulaLevels[id] || 0), 0);
+  const calculateNebulaMaxLimit = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (([...NEBULAE].find(n=>n.id===id)?.maxLevel) || 0), 0);
+
+  // 환생(평행우주)
+  const canPrestige = energy >= PRESTIGE_THRESHOLD;
+  const doPrestige = () => {
+    if (!canPrestige) return;
+    setParallelUniverses((prev) => prev + 1);
+    setPrestigeMultiplier((prev) => prev + PRESTIGE_INCREMENT);
+    setEnergy(0);
+    setEnergyPerClick(1);
+    setAutoClickRate(0);
+    setCriticalDamage(2.0);
+    setPlanetLevels({});
+    setNebulaLevels({});
+    setGlobalLevels({});
+    setPlanetMaxLevel(10);
+    setNebulaMaxLevel(10);
+    setTotalClicks(0);
+    setTotalEnergyGenerated(0);
+  };
+
   return (
     <div className="universe-clicker">
       <div className="clicker-header">
@@ -662,6 +759,7 @@ export default function UniverseClicker() {
             <div>클릭당: {formatNumber(energyPerClick * calculateMultiplier())}</div>
             <div>초당: {formatNumber(calculatePerSecond())}</div>
             <div>크리티컬: {(0.25 * 100).toFixed(0)}% (크리티컬 피해 {(criticalDamage * 100).toFixed(0)}%)</div>
+            <div>환생 배율: x{prestigeMultiplier.toFixed(2)} (평행우주 {parallelUniverses}개)</div>
           </div>
         </div>
       </div>
@@ -726,8 +824,33 @@ export default function UniverseClicker() {
             </div>
           </div>
 
-        <div className="nebulae-section">
-          <h2>🌌 성운 업그레이드</h2>
+          <div className="global-section">
+            <h2>🌟 전체 강화</h2>
+            <div className="upgrade-grid">
+              {GLOBAL_UPGRADES.map((g) => {
+                const level = globalLevels[g.id] || 0;
+                const cost = Math.floor(g.baseCost * Math.pow(2, level));
+                const reducers = [...NEBULAE, ...COSMOS].filter(n => n.effect === "costReduction");
+                let finalCost = cost;
+                reducers.forEach(r => { const lvl = nebulaLevels[r.id] || 0; if (lvl > 0) finalCost *= Math.pow(r.multiplier, lvl); });
+                const canBuy = energy >= finalCost;
+                return (
+                  <div key={g.id} className={`upgrade-card nebula-card ${canBuy ? "" : "disabled"}`} onClick={() => canBuy && setGlobalLevels(prev => ({ ...prev, [g.id]: level + 1 })) && setEnergy(prev => prev - Math.floor(finalCost))}>
+                    <div className="upgrade-emoji" style={{ color: g.color }}>{g.emoji}</div>
+                    <div className="upgrade-info">
+                      <h3>{g.name}</h3>
+                      <p>{g.description}</p>
+                      <div className="upgrade-level">레벨: {level}</div>
+                      <div className="upgrade-cost">비용: {formatNumber(Math.floor(finalCost))} 에너지</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="nebulae-section">
+            <h2>🌌 성운 업그레이드</h2>
             <div className="upgrade-grid">
               {NEBULAE.map((nebula) => {
                 const level = nebulaLevels[nebula.id] || 0;
@@ -808,6 +931,21 @@ export default function UniverseClicker() {
                 {formatNumber(calculatePerSecond())}
               </span>
             </div>
+          </div>
+          <div className="units-help">
+            <h3>단위 안내</h3>
+            <div className="units-grid">
+              {NUMBER_SUFFIXES.map(u => (
+                <div key={u.exp} className="unit-item">10^{u.exp}: {u.label}</div>
+              ))}
+            </div>
+          </div>
+          <div className="prestige-section">
+            <h3>🌀 평행우주(환생)</h3>
+            <p>현재 에너지로 환생하면 획득 배율이 증가합니다. 환생 시 모든 업그레이드가 초기화됩니다.</p>
+            <button className={`prestige-button ${canPrestige ? "" : "disabled"}`} onClick={doPrestige} disabled={!canPrestige}>
+              환생하기 (요구 에너지 {formatNumber(PRESTIGE_THRESHOLD)})
+            </button>
           </div>
         </div>
       </div>
