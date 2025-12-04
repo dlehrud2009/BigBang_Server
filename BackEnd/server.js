@@ -245,6 +245,11 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" });
 });
 
+// 루트 라우트
+app.get("/", (req, res) => {
+  res.json({ service: "BigBang Backend", health: "/api/health" });
+});
+
 // API 라우트가 먼저 처리되도록 확인
 // React 빌드 서빙은 마지막에
 const buildPath = path.join(__dirname, "../FrontEnd/build");
