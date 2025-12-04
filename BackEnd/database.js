@@ -247,17 +247,17 @@ function saveBlackHoleScore(userid, username, score, difficulty, callback) {
   if (!sqlite3) {
     global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
     const now = Date.now();
-    const idx = global.__MEM_DB__.scores.findIndex(s => s.userid === userid && s.difficulty === difficulty);
-    if (idx === -1) {
+    const existingForUser = global.__MEM_DB__.scores.filter(s => s.userid === userid);
+    const best = existingForUser.sort((a,b)=> (b.score - a.score) || (b.timestamp - a.timestamp))[0];
+    if (!best || score > best.score) {
+      // 새 기록 추가 후 사용자당 1개만 유지
       global.__MEM_DB__.scores.push({ userid, username, score, difficulty, timestamp: now });
+      const sorted = global.__MEM_DB__.scores.filter(s=>s.userid===userid).sort((a,b)=> (b.score - a.score) || (b.timestamp - a.timestamp));
+      const keep = sorted[0];
+      global.__MEM_DB__.scores = global.__MEM_DB__.scores.filter(s => s.userid !== userid).concat([keep]);
       return callback(null, { bestScore: score, timestamp: now });
     }
-    const prev = global.__MEM_DB__.scores[idx];
-    if (score > prev.score) {
-      global.__MEM_DB__.scores[idx] = { userid, username, score, difficulty, timestamp: now };
-      return callback(null, { bestScore: score, timestamp: now });
-    }
-    return callback(null, { bestScore: prev.score, timestamp: prev.timestamp });
+    return callback(null, { bestScore: best.score, timestamp: best.timestamp });
   }
   ensureInitialized(() => {
     const now = Date.now();
@@ -272,7 +272,15 @@ function saveBlackHoleScore(userid, username, score, difficulty, callback) {
           if (insErr) {
             return callback(insErr, null);
           }
-          callback(null, { bestScore: score, timestamp: now });
+          // 사용자당 1개만 유지: 최고 기록 제외 삭제
+          db.get(`SELECT id FROM blackhole_scores WHERE userid = ? ORDER BY score DESC, timestamp DESC LIMIT 1`, [userid], (bestErr, bestRow) => {
+            if (bestErr) return callback(bestErr, null);
+            const bestId = bestRow && bestRow.id;
+            db.run(`DELETE FROM blackhole_scores WHERE userid = ? AND id <> ?`, [userid, bestId], (delErr) => {
+              if (delErr) return callback(delErr, null);
+              callback(null, { bestScore: score, timestamp: now });
+            });
+          });
         });
       } else {
         if (score > row.score) {
@@ -281,10 +289,20 @@ function saveBlackHoleScore(userid, username, score, difficulty, callback) {
             if (upErr) {
               return callback(upErr, null);
             }
-            callback(null, { bestScore: score, timestamp: now });
+            db.get(`SELECT id FROM blackhole_scores WHERE userid = ? ORDER BY score DESC, timestamp DESC LIMIT 1`, [userid], (bestErr, bestRow) => {
+              if (bestErr) return callback(bestErr, null);
+              const bestId = bestRow && bestRow.id;
+              db.run(`DELETE FROM blackhole_scores WHERE userid = ? AND id <> ?`, [userid, bestId], (delErr) => {
+                if (delErr) return callback(delErr, null);
+                callback(null, { bestScore: score, timestamp: now });
+              });
+            });
           });
         } else {
-          callback(null, { bestScore: row.score, timestamp: row.timestamp });
+          db.get(`SELECT id, score, timestamp FROM blackhole_scores WHERE userid = ? ORDER BY score DESC, timestamp DESC LIMIT 1`, [userid], (bestErr, bestRow) => {
+            if (bestErr) return callback(bestErr, null);
+            callback(null, { bestScore: bestRow.score, timestamp: bestRow.timestamp });
+          });
         }
       }
     });
@@ -413,28 +431,33 @@ function getClickerRankings(limit = 10, callback) {
 function getBlackHoleRankings(limit = 10, difficulty = null, callback) {
   if (!sqlite3) {
     global.__MEM_DB__ = global.__MEM_DB__ || { users: [], scores: [] };
-    let arr = [...global.__MEM_DB__.scores];
-    if (difficulty && difficulty !== "all") arr = arr.filter(s => s.difficulty === difficulty);
-    arr.sort((a, b) => (b.score - a.score) || (b.timestamp - a.timestamp));
+    const byUser = new Map();
+    for (const s of global.__MEM_DB__.scores) {
+      const prev = byUser.get(s.userid);
+      if (!prev || s.score > prev.score || (s.score === prev.score && s.timestamp > prev.timestamp)) {
+        byUser.set(s.userid, s);
+      }
+    }
+    const arr = Array.from(byUser.values()).sort((a,b)=> (b.score - a.score) || (b.timestamp - a.timestamp));
     const rankings = arr.slice(0, limit).map((row, idx) => ({ rank: idx + 1, ...row }));
     return callback(null, rankings);
   }
   ensureInitialized(() => {
-    let sql = `SELECT userid, username, score, difficulty, timestamp FROM blackhole_scores`;
-    const params = [];
-    if (difficulty && difficulty !== "all") {
-      sql += ` WHERE difficulty = ?`;
-      params.push(difficulty);
-    }
-    sql += ` ORDER BY score DESC, timestamp DESC LIMIT ?`;
-    params.push(limit);
-    db.all(sql, params, (err, rows) => {
-      if (err) {
-        callback(err, null);
-      } else {
-        const rankings = rows.map((row, idx) => ({ rank: idx + 1, ...row }));
-        callback(null, rankings);
-      }
+    const sql = `
+      SELECT b.userid, b.username, b.score, b.difficulty, b.timestamp
+      FROM blackhole_scores b
+      WHERE NOT EXISTS (
+        SELECT 1 FROM blackhole_scores b2
+        WHERE b2.userid = b.userid
+          AND (b2.score > b.score OR (b2.score = b.score AND b2.timestamp > b.timestamp))
+      )
+      ORDER BY b.score DESC, b.timestamp DESC
+      LIMIT ?
+    `;
+    db.all(sql, [limit], (err, rows) => {
+      if (err) return callback(err, null);
+      const rankings = rows.map((row, idx) => ({ rank: idx + 1, ...row }));
+      callback(null, rankings);
     });
   });
 }

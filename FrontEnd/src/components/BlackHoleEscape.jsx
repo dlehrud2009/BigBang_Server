@@ -255,6 +255,23 @@ export default function BlackHoleEscape({ userid, username }) {
           state.dashActive = false;
           state.player.invincible = false;
         }
+
+        // 맵 탈출 감지: 경계에 도달한 상태에서 대시 중이면 탈출로 간주
+        if (
+          state.player.x <= 0 ||
+          state.player.x >= canvas.width - state.player.width ||
+          state.player.y <= 0 ||
+          state.player.y >= canvas.height - state.player.height
+        ) {
+          setGameOverReason("맵을 탈출했습니다!");
+          const nowScore = Math.floor((performance.now() - state.gameStartTime) / 100);
+          setScore(nowScore);
+          setGameState("gameover");
+          if (userid && !scoreSubmitted) {
+            submitScore(nowScore, selectedDifficulty);
+          }
+          return;
+        }
       }
 
       // 대시 쿨다운

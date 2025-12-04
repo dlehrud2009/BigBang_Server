@@ -777,7 +777,7 @@ export default function UniverseClicker({ userid }) {
     pressTimerRef.current = setInterval(() => {
       if (type === "planet") buyPlanet(id);
       else if (type === "nebula") buyNebula(id);
-    }, 100);
+    }, 30);
   };
   const stopContinuousBuy = () => {
     if (pressTimerRef.current) {
