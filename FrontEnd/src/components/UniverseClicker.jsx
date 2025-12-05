@@ -556,7 +556,7 @@ export default function UniverseClicker({ userid }) {
     if (!planet) return;
 
     const level = planetLevelsRef.current[planetId] || 0;
-    const allowedMax = planet.effect === "increasePlanetMax" ? (planet.maxLevel ?? Infinity) : calculatePlanetMax();
+    const allowedMax = planet.effect === "increasePlanetMax" ? (planet.maxLevel ?? Infinity) : calculatePlanetMaxFor(planetId);
     if (level >= allowedMax) return;
     const cost = getPlanetCost(planetId);
 
@@ -690,8 +690,9 @@ export default function UniverseClicker({ userid }) {
   };
 
   // 한계 증폭기 중첩 계산
-  const calculatePlanetMax = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (planetLevelsRef.current[id] || 0), 0);
-  const calculatePlanetMaxLimit = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, id) => sum + (PLANETS.find(p=>p.id===id)?.maxLevel || 0), 0);
+  const calculatePlanetBaseMaxFor = (id) => (id === "mercury" ? 20 : 10);
+  const calculatePlanetMaxFor = (id) => calculatePlanetBaseMaxFor(id) + 3 * ["planetcap", "planetcap2"].reduce((sum, cid) => sum + (planetLevelsRef.current[cid] || 0), 0);
+  const calculatePlanetMaxLimit = () => 10 + 3 * ["planetcap", "planetcap2"].reduce((sum, cid) => sum + (PLANETS.find(p=>p.id===cid)?.maxLevel || 0), 0);
   const calculateNebulaMax = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (nebulaLevelsRef.current[id] || 0), 0);
   const calculateNebulaMaxLimit = () => 10 + 3 * ["nebulacap", "nebulacap II", "nebulacap3"].reduce((sum, id) => sum + (([...NEBULAE].find(n=>n.id===id)?.maxLevel) || 0), 0);
 
@@ -796,7 +797,7 @@ export default function UniverseClicker({ userid }) {
               {PLANETS.map((planet) => {
                 const level = planetLevels[planet.id] || 0;
                 const cost = getPlanetCost(planet.id);
-                const allowedMax = planet.effect === "increasePlanetMax" ? (planet.maxLevel ?? Infinity) : planetMaxLevel;
+                const allowedMax = planet.effect === "increasePlanetMax" ? (planet.maxLevel ?? Infinity) : calculatePlanetMaxFor(planet.id);
                 const canBuy = energy >= cost && level < allowedMax;
 
                 return (
