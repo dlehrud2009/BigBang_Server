@@ -923,7 +923,7 @@ export default function UniverseClicker({ userid }) {
             <h3>🌀 평행우주</h3>
             <p>현재 에너지로 평행우주를 만들면 획득 배율이 증가합니다. 평행우주 생성 시 모든 업그레이드가 초기화됩니다.</p>
             <button className={`prestige-button ${canPrestige ? "" : "disabled"}`} onClick={doPrestige} disabled={!canPrestige}>
-              평행우주 (요구 에너지 {formatMoney(getPrestigeThreshold())})
+              평행우주 (요구 에너지 {formatNumber(getPrestigeThreshold())})
             </button>
           </div>
 
