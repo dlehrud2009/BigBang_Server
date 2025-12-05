@@ -436,6 +436,7 @@ export default function UniverseClicker({ userid }) {
         const lvl = nebulaLevels[src.id] || 0;
         if (lvl > 0) baseEnergy *= Math.pow(src.multiplier, lvl);
       });
+      baseEnergy *= 1.75;
       
       const multiplier = calculateMultiplier();
       const generated = baseEnergy * multiplier;
@@ -658,6 +659,7 @@ export default function UniverseClicker({ userid }) {
       const lvl = nebulaLevels[src.id] || 0;
       if (lvl > 0) base *= Math.pow(src.multiplier, lvl);
     });
+    base *= 1.75;
     return base * calculateMultiplier();
   };
 
