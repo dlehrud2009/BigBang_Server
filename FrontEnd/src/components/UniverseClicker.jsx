@@ -331,7 +331,7 @@ const COSMOS = [
   { id: "sloanwall", name: "슬론 거대 장벽", description: "전체 배수 증가", baseCost: 5.0e93, effect: "multiplier", multiplier: 1.5, emoji: "🧱", color: "#b0b0ff" },
   { id: "greatattractor", name: "그레이트 어트랙터", description: "모든 효과 증가", baseCost: 8.0e93, effect: "allBoost", multiplier: 1.2, emoji: "🧲", color: "#ffd280" },
   { id: "bootesvoid", name: "부티스 공허", description: "전체 생산 증가", baseCost: 1.2e94, effect: "globalProduction", multiplier: 1.5, emoji: "⚪", color: "#e0e0ff" },
-  { id: "observable", name: "관측 가능한 우주", description: "모든 효과 대폭 증가", baseCost: 1.0e95, effect: "allBoost", multiplier: 1.25, emoji: "🌌", color: "#a8bfff", maxLevel: Infinity },
+  { id: "observable", name: "관측 가능한 우주", description: "모든 효과 대폭 증가", baseCost: 1.0e95, effect: "allBoost", multiplier: 2, emoji: "🌌", color: "#a8bfff", maxLevel: Infinity },
 ];
 
 
