@@ -7,7 +7,7 @@ const PLANETS = [
   {
     id: "mercury",
     name: "수성",
-    description: "클릭 속도 증가",
+    description: "클릭당 에너지 20% 증가",
     baseCost: 75,
     effect: "clickSpeed", // 클릭당 에너지 증가
     multiplier: 1.2,
