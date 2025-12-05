@@ -758,7 +758,7 @@ export default function UniverseClicker({ userid }) {
             <div>클릭당: {formatNumber(energyPerClick * calculateMultiplier())}</div>
             <div>초당: {formatNumber(calculatePerSecond())}</div>
             <div>크리티컬: {(criticalChance * 100).toFixed(0)}% (크리티컬 피해 {(criticalDamage * 100).toFixed(0)}%)</div>
-            <div>평행 우주: x{prestigeMultiplier.toFixed(2)} (환생 {parallelUniverses}개)</div>
+            <div>평행 우주: x{prestigeMultiplier.toFixed(2)} (평행우주 {parallelUniverses}개)</div>
             
           </div>
           
@@ -920,10 +920,10 @@ export default function UniverseClicker({ userid }) {
           </div>
           
           <div className="prestige-section">
-            <h3>🌀 평행우주(환생)</h3>
-            <p>현재 에너지로 환생하면 획득 배율이 증가합니다. 환생 시 모든 업그레이드가 초기화됩니다.</p>
+            <h3>🌀 평행우주</h3>
+            <p>현재 에너지로 평행우주를 만들면 획득 배율이 증가합니다. 평행우주 생성 시 모든 업그레이드가 초기화됩니다.</p>
             <button className={`prestige-button ${canPrestige ? "" : "disabled"}`} onClick={doPrestige} disabled={!canPrestige}>
-              환생하기 (요구 에너지 {formatMoney(getPrestigeThreshold())})
+              평행우주 (요구 에너지 {formatMoney(getPrestigeThreshold())})
             </button>
           </div>
 
