@@ -337,7 +337,7 @@ const COSMOS = [
 
 const SAVE_KEY = "universe_clicker_save_v1";
 const PRESTIGE_BASE = 1e120;
-const PRESTIGE_INCREMENT = 0.5;
+const PRESTIGE_INCREMENT = 1;
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:4000";
 
