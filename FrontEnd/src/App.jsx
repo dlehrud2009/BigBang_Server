@@ -56,7 +56,11 @@ export default function App() {
   // 시뮬레이션 제어
   // ------------------------
   const startSimulation = async () => {
-    if (!userid) return;
+    if (!userid) {
+      setStatus("started");
+      setStage("bigbang");
+      return;
+    }
 
     await axios.post(`${API_BASE}/api/simulation/start`, { userid });
     setStatus("started");
@@ -65,7 +69,10 @@ export default function App() {
   };
 
   const pauseSimulation = async () => {
-    if (!userid) return;
+    if (!userid) {
+      setStatus((prev) => (prev === "paused" ? "started" : "paused"));
+      return;
+    }
 
     const res = await axios.post(`${API_BASE}/api/simulation/pause`, {
       userid,
@@ -76,11 +83,13 @@ export default function App() {
   };
 
   const changeStage = async (newStage) => {
-    if (!userid) return;
+    if (!userid) {
+      setStage(newStage);
+      return;
+    }
 
     await axios.post(`${API_BASE}/api/simulation/stage`, { userid, stage: newStage });
     setStage(newStage);
-    // 서버 브로드캐스트는 REST로 처리되므로 별도 소켓 emit 불필요
   };
 
   if (currentView === "login") {
