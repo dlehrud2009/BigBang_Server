@@ -3,7 +3,12 @@ const { Pool } = require('pg');
 // PostgreSQL 연결 설정 (Render의 DATABASE_URL 환경변수 사용)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // IPv6 문제 해결을 위한 설정
+  ...(process.env.NODE_ENV === 'production' && {
+    host: process.env.DATABASE_URL?.match(/@([^:]+):/)?.[1],
+    connectionTimeoutMillis: 10000,
+  })
 });
 
 let isInitialized = false;
