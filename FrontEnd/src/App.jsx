@@ -97,8 +97,8 @@ export default function App() {
     return <Login onLogin={handleLogin} onGuestContinue={handleGuestContinue} />;
   }
 
-  // Supabase 이메일 인증 후 리다이렉션 경로 처리
-  if (window && window.location && window.location.pathname === '/auth-confirmation') {
+  // Supabase 이메일 인증 후 리다이렉션 경로 처리 (해시 라우트)
+  if (window && window.location && window.location.hash === '#/auth-confirmation') {
     return <AuthConfirmation />;
   }
 

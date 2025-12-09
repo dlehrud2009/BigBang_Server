@@ -47,10 +47,10 @@ export default function Login({ onLogin, onGuestContinue }) {
 
     try {
       // 프로덕션과 개발 환경 모두 지원
-      const redirectUrl = process.env.NODE_ENV === 'production' 
-        ? window.location.origin 
-        : window.location.origin;
-        
+      // 해시 라우트 사용: 정적 호스팅에서 새 경로로 접근하면 Not Found가 발생할 수 있어
+      // '#/auth-confirmation' 해시를 사용하면 서버 설정 변경 없이 클라이언트에서 처리할 수 있습니다.
+      const redirectUrl = `${window.location.origin}/#/auth-confirmation`;
+
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         emailRedirectTo: redirectUrl
       });
@@ -112,7 +112,8 @@ export default function Login({ onLogin, onGuestContinue }) {
     try {
       if (isSignUp) {
         // Supabase 이메일 회원가입
-        const signupRedirect = `${window.location.origin}/auth-confirmation`;
+        // 해시 라우트를 사용하여 정적 호스팅에서 바로 접근 시 404를 방지합니다.
+        const signupRedirect = `${window.location.origin}/#/auth-confirmation`;
 
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: email.trim(),
