@@ -199,6 +199,94 @@ app.post("/api/auth/login", (req, res) => {
   });
 });
 
+// API: Supabase 사용자 동기화 (이메일 로그인용)
+app.post('/api/auth/supabase-sync', (req, res) => {
+  const { supabase_id, email, username } = req.body;
+
+  if (!supabase_id || !email || !username) {
+    return res.status(400).json({ 
+      success: false, 
+      message: '필수 정보가 누락되었습니다' 
+    });
+  }
+
+  console.log('Supabase 동기화 요청:', { email, username });
+
+  // 먼저 기존 사용자 확인
+  getUserByUsername(username, (err, user) => {
+    if (err) {
+      console.error('사용자 조회 오류:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: '서버 오류가 발생했습니다' 
+      });
+    }
+
+    if (user) {
+      // 이미 존재하는 사용자 - 로그인 처리
+      const userid = user.id;
+      if (!users[userid]) {
+        users[userid] = { username: user.username };
+        simulationStates[userid] = { stage: "bigbang", status: "paused" };
+      }
+      
+      console.log(`이메일 로그인: ${user.username} (ID: ${userid})`);
+      return res.json({
+        success: true,
+        userid: userid,
+        username: user.username,
+        message: '이메일 로그인 성공'
+      });
+    } else {
+      // 새 사용자 - 회원가입 처리 (supabase_id를 비밀번호로 사용)
+      createUser(username, supabase_id, (createErr, result) => {
+        if (createErr) {
+          console.error('이메일 사용자 생성 오류:', createErr);
+          
+          // 중복 사용자명 처리
+          if (createErr.message.includes('이미 존재')) {
+            const randomUsername = `${username}_${Math.floor(Math.random() * 10000)}`;
+            createUser(randomUsername, supabase_id, (retryErr, retryResult) => {
+              if (retryErr) {
+                return res.status(500).json({ 
+                  success: false, 
+                  message: '회원가입 실패' 
+                });
+              }
+              
+              users[retryResult.userid] = { username: randomUsername };
+              simulationStates[retryResult.userid] = { stage: "bigbang", status: "paused" };
+              
+              console.log(`이메일 회원가입 성공: ${randomUsername} (ID: ${retryResult.userid})`);
+              return res.json({
+                success: true,
+                userid: retryResult.userid,
+                username: randomUsername,
+                message: '회원가입 성공'
+              });
+            });
+          } else {
+            return res.status(500).json({ 
+              success: false, 
+              message: '회원가입 실패' 
+            });
+          }
+        } else {
+          users[result.userid] = { username: result.username };
+          simulationStates[result.userid] = { stage: "bigbang", status: "paused" };
+          
+          console.log(`이메일 회원가입 성공: ${result.username} (ID: ${result.userid})`);
+          return res.json({
+            success: true,
+            userid: result.userid,
+            username: result.username,
+            message: '회원가입 성공'
+          });
+        }
+      });
+    }
+  });
+});
 
 // API: 블랙홀 점수 제출
 app.post("/api/blackhole/score", (req, res) => {
