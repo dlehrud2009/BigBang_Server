@@ -52,7 +52,7 @@ export default function Login({ onLogin, onGuestContinue }) {
         : window.location.origin;
         
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: redirectUrl
+        emailRedirectTo: redirectUrl
       });
 
       if (error) throw error;
@@ -112,13 +112,16 @@ export default function Login({ onLogin, onGuestContinue }) {
     try {
       if (isSignUp) {
         // Supabase 이메일 회원가입
+        const signupRedirect = `${window.location.origin}/auth-confirmation`;
+
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: email.trim(),
           password: password.trim(),
           options: {
             data: {
               username: username.trim()
-            }
+            },
+            emailRedirectTo: signupRedirect
           }
         });
 

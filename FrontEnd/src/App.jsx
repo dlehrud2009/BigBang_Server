@@ -5,6 +5,7 @@ import ParticleCanvas from "./components/ParticleCanvas";
 import UniverseClicker from "./components/UniverseClicker";
 import BlackHoleEscape from "./components/BlackHoleEscape";
 import Login from "./components/Login";
+import AuthConfirmation from "./components/AuthConfirmation";
 import "./App.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:4000";
@@ -94,6 +95,11 @@ export default function App() {
 
   if (currentView === "login") {
     return <Login onLogin={handleLogin} onGuestContinue={handleGuestContinue} />;
+  }
+
+  // Supabase 이메일 인증 후 리다이렉션 경로 처리
+  if (window && window.location && window.location.pathname === '/auth-confirmation') {
+    return <AuthConfirmation />;
   }
 
   if (currentView === "menu") {
