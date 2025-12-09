@@ -57,10 +57,10 @@ const PLANETS = [
   {
     id: "saturn",
     name: "토성",
-    description: "에너지 생성 속도 40% 증가",
+    description: "에너지 생성 속도 50% 증가",
     baseCost: 75000,
-    effect: "generationSpeed", // 자동 생성 속도 증가
-    multiplier: 1.4,
+    effect: "autoBonus", // 자동 생성 속도 증가
+    multiplier: 1.5,
     emoji: "♄",
     color: "#FAD5A5",
   },
@@ -113,20 +113,20 @@ const NEBULAE = [
   {
     id: "orion",
     name: "오리온 성운",
-    description: "클릭당 에너지 +15%",
+    description: "클릭당 에너지 +20%",
     baseCost: 100000000000,
     effect: "clickBonus",
-    multiplier: 1.15,
+    multiplier: 1.2,
     emoji: "🌌",
     color: "#FF6B9D",
   },
   {
     id: "crab",
     name: "게 성운",
-    description: "자동 생성량 +20%",
+    description: "에너지 생성 속도 30% 증가",
     baseCost: 50000000000000,
     effect: "autoBonus",
-    multiplier: 1.25,
+    multiplier: 1.3,
     emoji: "🦀",
     color: "#FFD700",
   },
@@ -173,10 +173,10 @@ const NEBULAE = [
   {
     id: "tarantula",
     name: "거미 성운",
-    description: "자동 생성량 +35% 증가",
+    description: "에너지 생성 속도 40% 증가",
     baseCost: 300000000000000,
     effect: "autoBonus",
-    multiplier: 1.35,
+    multiplier: 1.4,
     emoji: "🕷️",
     color: "#ff9fb3",
   },
@@ -263,10 +263,10 @@ const NEBULAE = [
   {
     id: "veil",
     name: "베일 성운",
-    description: "자동 생성량 40% 증가",
+    description: "에너지 생성 속도 50% 증가",
     baseCost: 10000000000000000,
     effect: "autoBonus",
-    multiplier: 1.4,
+    multiplier: 1.5,
     emoji: "🕸️",
     color: "#a8bfff",
   },
@@ -307,22 +307,22 @@ const NEBULAE = [
 const COSMOS = [
   { id: "milkyway", name: "은하수", description: "전체 배수 증가", baseCost: 1e93, effect: "multiplier", multiplier: 1.5, emoji: "🌌", color: "#9ec3ff" },
   { id: "andromeda", name: "안드로메다", description: "클릭 보너스", baseCost: 1.2e93, effect: "clickBonus", multiplier: 1.2, emoji: "🌀", color: "#8fb3ff" },
-  { id: "virgo", name: "처녀자리 은하단", description: "자동 생성 보너스", baseCost: 1.5e93, effect: "autoBonus", multiplier: 1.25, emoji: "🌠", color: "#ffd08a" },
+  { id: "virgo", name: "처녀자리 은하단", description: "에너지 생성 속도 30% 증가", baseCost: 1.5e93, effect: "autoBonus", multiplier: 1.3, emoji: "🌠", color: "#ffd08a" },
   { id: "laniakea", name: "라니아케아 초은하단", description: "전체 생산 증가", baseCost: 2.0e93, effect: "globalProduction", multiplier: 1.5, emoji: "🌌", color: "#c1a6ff" },
   { id: "quasar", name: "퀘이사", description: "크리티컬 피해 증가", baseCost: 1.8e93, effect: "criticalDamage", multiplier: 1.2, emoji: "✨", color: "#ff7fbf" },
-  { id: "pulsar", name: "펄사", description: "자동 생성 보너스", baseCost: 1.6e93, effect: "autoBonus", multiplier: 1.35, emoji: "🧭", color: "#a0e7ff" },
+  { id: "pulsar", name: "펄사", description: "에너지 생성 속도 45% 증가", baseCost: 1.6e93, effect: "autoBonus", multiplier: 1.45, emoji: "🧭", color: "#a0e7ff" },
   { id: "neutronstar", name: "중성자별", description: "클릭 보너스", baseCost: 1.4e93, effect: "clickBonus", multiplier: 1.2, emoji: "⭐", color: "#ffe58f" },
   { id: "supernova", name: "초신성", description: "전체 배수 증가", baseCost: 2.5e93, effect: "multiplier", multiplier: 1.5, emoji: "💥", color: "#ffaf7f" },
   { id: "cmb", name: "우주배경복사", description: "모든 효과 증가", baseCost: 3.0e93, effect: "allBoost", multiplier: 1.2, emoji: "📡", color: "#a9b7ff" },
   { id: "darkmatter", name: "암흑물질", description: "업그레이드 비용 감소", baseCost: 2.2e93, effect: "costReduction", multiplier: 0.9, emoji: "🌑", color: "#666" },
   { id: "darkenergy", name: "암흑에너지", description: "전체 생산 증가", baseCost: 3.5e93, effect: "globalProduction", multiplier: 1.75, emoji: "⚡", color: "#88f" },
   { id: "cosmicweb", name: "우주 거대구조", description: "전체 배수 증가", baseCost: 2.8e93, effect: "multiplier", multiplier: 1.5, emoji: "🕸️", color: "#d0d0ff" },
-  { id: "starcluster", name: "산개성단", description: "자동 생성 보너스", baseCost: 1.3e93, effect: "autoBonus", multiplier: 1.4, emoji: "🌟", color: "#ffd7a0" },
+  { id: "starcluster", name: "산개성단", description: "에너지 생성 속도 60% 증가", baseCost: 1.3e93, effect: "autoBonus", multiplier: 1.6, emoji: "🌟", color: "#ffd7a0" },
   { id: "globular", name: "구상성단", description: "클릭 보너스", baseCost: 1.7e93, effect: "clickBonus", multiplier: 1.2, emoji: "🔵", color: "#cfe2ff" },
   { id: "gascloud", name: "분자운", description: "모든 효과 증가", baseCost: 1.9e93, effect: "allBoost", multiplier: 1.2, emoji: "☁️", color: "#a0f0ff" },
   { id: "blackhole", name: "블랙홀", description: "크리티컬 피해 증가", baseCost: 2.4e93, effect: "criticalDamage", multiplier: 1.2, emoji: "⚫", color: "#333" },
   { id: "protostar", name: "원시성", description: "클릭 보너스", baseCost: 1.1e93, effect: "clickBonus", multiplier: 1.2, emoji: "🌠", color: "#ffcf8b" },
-  { id: "megamaser", name: "메가메이저", description: "자동 생성 보너스", baseCost: 2.1e93, effect: "autoBonus", multiplier: 1.5, emoji: "📡", color: "#b0e0ff" },
+  { id: "megamaser", name: "메가메이저", description: "에너지 생성 속도 75% 증가", baseCost: 2.1e93, effect: "autoBonus", multiplier: 1.75, emoji: "📡", color: "#b0e0ff" },
   { id: "hypernova", name: "하이퍼노바", description: "전체 배수 증가", baseCost: 4.0e93, effect: "multiplier", multiplier: 1.5, emoji: "🔥", color: "#ff8f8f" },
   { id: "exoplanet", name: "외계행성", description: "클릭 보너스", baseCost: 1.25e93, effect: "clickBonus", multiplier: 1.2, emoji: "🪐", color: "#9fd3ff" },
   { id: "ringgalaxy", name: "고리은하", description: "모든 효과 증가", baseCost: 2.6e93, effect: "allBoost", multiplier: 1.2, emoji: "⭕", color: "#c0c0ff" },
@@ -578,9 +578,6 @@ export default function UniverseClicker({ userid }) {
           break;
         case "criticalChance":
           setCriticalChance((prev) => Math.min(prev + 0.01, 0.5));
-          break;
-        case "generationSpeed":
-          // 자동 생성 속도는 이미 계산됨
           break;
         case "increasePlanetMax":
           setPlanetMaxLevel((prev) => Math.min(prev + 3, calculatePlanetMaxLimit()));
