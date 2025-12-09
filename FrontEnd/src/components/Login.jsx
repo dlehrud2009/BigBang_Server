@@ -46,8 +46,13 @@ export default function Login({ onLogin, onGuestContinue }) {
     setMessage("");
 
     try {
+      // 프로덕션과 개발 환경 모두 지원
+      const redirectUrl = process.env.NODE_ENV === 'production' 
+        ? window.location.origin 
+        : window.location.origin;
+        
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: redirectUrl
       });
 
       if (error) throw error;
